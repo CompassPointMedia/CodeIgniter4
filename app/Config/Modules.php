@@ -64,4 +64,30 @@ class Modules
 
 		return in_array($alias, $this->activeExplorers);
 	}
+    /*
+    |--------------------------------------------------------------------------
+    | Modules with Routing Authority (Module Routing Engine)
+    |--------------------------------------------------------------------------
+    |
+    | This system, instead of taking routes and naming controller/method,
+    | allows the modules listed below to inspect and "claim" a URI as its own.
+    | For example, a site may have a standard page controller as well as an
+    | extensive CMS/article plugin.  Pages might include /about-us, /contact-us,
+    | etc. while articles might include /how-to-train-your-dragon/2019/08 or
+    | /why-i-am-frustrated-with-star-wars.  It would make sense to declare the
+    | pages module first if present, and then the articles module.  Obviously you
+    | can't have an article title and a page resolve to the same value, but
+    | a little preventative coding would avoid the prefix `/articles` all the
+    | time - why have part of a url you don't really need?
+    */
+    public $routingModules = [
+        // modules get to review URIs in the order they are declared here
+        [
+            'active' => true,
+            'name' => 'Sample Module Routing temp-stored in Controllers/Modules',
+            'class' => \App\Controllers\Modules\SampleModuleRouting::class,
+
+        ]
+    ];
+
 }

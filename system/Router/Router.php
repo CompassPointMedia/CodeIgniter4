@@ -42,6 +42,8 @@ use CodeIgniter\HTTP\Request;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\Router\Exceptions\RedirectException;
 use CodeIgniter\Router\Exceptions\RouterException;
+use CodeIgniter\Module\ModuleRoutingEngine;
+use \Config\Modules;
 
 /**
  * Request router.
@@ -162,7 +164,7 @@ class Router implements RouterInterface
 		$this->translateURIDashes = $this->collection->shouldTranslateURIDashes();
 
 		// If we cannot find a URI to match against, then
-		// everything runs off of it's default settings.
+		// everything runs off of its default settings.
 		if (empty($uri))
 		{
 			return strpos($this->controller, '\\') === false
@@ -172,7 +174,7 @@ class Router implements RouterInterface
 
 		if ($this->checkRoutes($uri))
 		{
-			if ($this->collection->isFiltered($this->matchedRoute[0]))
+		    if ($this->collection->isFiltered($this->matchedRoute[0]))
 			{
 				$this->filterInfo = $this->collection->getFilterForRoute($this->matchedRoute[0]);
 			}
@@ -391,7 +393,10 @@ class Router implements RouterInterface
 	 */
 	protected function checkRoutes(string $uri): bool
 	{
-		$routes = $this->collection->getRoutes($this->collection->getHTTPVerb());
+
+
+	    // Get routes though the module routing may not need that
+	    $routes = $this->collection->getRoutes($this->collection->getHTTPVerb());
 
 		$uri = $uri === '/'
 			? $uri
@@ -403,10 +408,32 @@ class Router implements RouterInterface
 			return false;
 		}
 
+		// New Module Routing Engine
+        $modules = new Modules();
+        if(!empty($modules->routingModules)){
+            $engine = new ModuleRoutingEngine($modules, $routes);
+
+            if($engine->runThrough($this->collection->getHTTPVerb(), $uri)){
+                $this->detectedLocale = $engine->detectedLocale ?? $this->getLocale();
+
+                $this->controller = $engine->controller;
+
+                $this->method = $engine->method;
+
+                $this->params = $engine->params;
+
+                $this->matchedRoute = $engine->matchedRoute;
+
+                $this->matchedRouteOptions = $engine->matchedRouteOptions;
+
+                return true;
+            }
+        }
+
 		// Loop through the route array looking for wildcards
 		foreach ($routes as $key => $val)
 		{
-			$key = $key === '/'
+		    $key = $key === '/'
 				? $key
 				: ltrim($key, '/ ');
 
