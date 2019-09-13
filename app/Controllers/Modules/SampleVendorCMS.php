@@ -1,9 +1,11 @@
 <?php
 namespace App\Controllers\Modules;
 
-class SampleVendorCMS extends \App\Controllers\BaseController {
+class SampleVendorCMS extends \App\Controllers\BaseController
+{
 
-    public function renderArticle($article, $responseid = null){
+    public function renderArticle($article, $responseid = null)
+    {
 
         echo '<pre>';
 

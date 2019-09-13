@@ -8,7 +8,8 @@ namespace CodeIgniter\Module;
  *
  * Created by Samuel Fullman <samuel.fullman@gmail.com>
  */
-class ModuleRoutingEngine {
+class ModuleRoutingEngine
+{
 
     /**
      * @var $modules null
@@ -56,7 +57,8 @@ class ModuleRoutingEngine {
     public $matchedRouteOptions = null;
 
 
-    public function __construct($modules, $routes) {
+    public function __construct($modules, $routes)
+    {
 
         // set routingModules from Config\Modules
         $this->routingModules = $modules->routingModules;
@@ -72,9 +74,11 @@ class ModuleRoutingEngine {
      * @return bool
      * @throws \ErrorException
      */
-    function runThrough($HTTPVerb, $uri){
+    public function runThrough($HTTPVerb, $uri)
+    {
 
-        foreach($this->routingModules as $module){
+        foreach($this->routingModules as $module)
+        {
             if(isset($module['active']) && $module['active'] === false)
             {
                 // Allows config to inactivate modules
@@ -84,11 +88,13 @@ class ModuleRoutingEngine {
             $class = $module['class'];
             $routeInspect = new $class();
 
-            if(empty(class_implements($routeInspect)['CodeIgniter\Module\ModuleRoutingInterface'])){
+            if(empty(class_implements($routeInspect)['CodeIgniter\Module\ModuleRoutingInterface']))
+            {
                 throw new \ErrorException('Declared routing module ' . $module['class'] . ' does not correctly implement interface \CodeIgniter\Module\ModuleRoutingInterface.php');
             }
 
-            if($routeInspect->isMyUri($HTTPVerb, $uri)){
+            if($routeInspect->isMyUri($HTTPVerb, $uri))
+            {
                 //@todo: we may want to get the first match but in CMS debugging mode continue through the list and see if there are any conflicts, and either exit or log the incident
 
                 $this->detectedLocale = $routeInspect->detectedLocale;
