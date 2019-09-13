@@ -410,10 +410,12 @@ class Router implements RouterInterface
 
 		// New Module Routing Engine
         $modules = new Modules();
-        if(!empty($modules->routingModules)){
+        if(! empty($modules->routingModules))
+        {
             $engine = new ModuleRoutingEngine($modules, $routes);
 
-            if($engine->runThrough($this->collection->getHTTPVerb(), $uri)){
+            if($engine->runThrough($this->collection->getHTTPVerb(), $uri))
+            {
                 $this->detectedLocale = $engine->detectedLocale ?? $this->getLocale();
 
                 $this->controller = $engine->controller;
