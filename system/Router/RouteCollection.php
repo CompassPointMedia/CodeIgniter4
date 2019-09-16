@@ -117,7 +117,7 @@ class RouteCollection implements RouteCollectionInterface
 
 	/**
 	 * Defined placeholders that can be used
-	 * within the
+	 * within the route match declarations
 	 *
 	 * @var array
 	 */
@@ -377,7 +377,19 @@ class RouteCollection implements RouteCollectionInterface
 		return $this;
 	}
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
+
+    /**
+     * Returns the module config
+     *
+     * @return object $moduleConfig
+     */
+    public function getModuleConfig()
+    {
+        return $this->moduleConfig;
+    }
+
+    //--------------------------------------------------------------------
 
 	/**
 	 * Returns the 404 Override setting, which can be null, a closure

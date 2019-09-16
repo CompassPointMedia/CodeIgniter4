@@ -80,6 +80,13 @@ class Modules
     | a little preventative coding would avoid the prefix `/articles` all the
     | time - why have part of a url you don't really need?
     */
+    /**
+     * Whether or not to utilize the Module Routing feature, false turns it off.
+     *
+     * @var bool $useModuleRouting
+     */
+    public $useModuleRouting = true;
+
     public $routingModules = [
         // modules get to review URIs in the order they are declared here
         [
