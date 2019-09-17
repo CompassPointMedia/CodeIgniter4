@@ -172,17 +172,24 @@ class Router implements RouterInterface
 				: $this->controller;
 		}
 
-		if (! empty($this->collection->getModuleConfig()->useModuleRouting)){
+		// New Module Routing Engine feature
+		if (! empty($this->collection->getModuleConfig()->useModuleRouting) && ! empty($this->collection->getModuleConfig()->routingModules)){
             $engine = new ModuleRoutingEngine($this->collection->getModuleConfig(), []);
 
             if ($engine->runThrough($this->collection->getHTTPVerb(), $uri))
             {
-                $this->detectedLocale = $engine->detectedLocale ?? $this->getLocale();
+                // Following two attributes MUST be provided by engine
                 $this->controller = $engine->controller;
                 $this->method = $engine->method;
-                $this->params = $engine->params;
-                $this->matchedRoute = $engine->matchedRoute;
-                $this->matchedRouteOptions = $engine->matchedRouteOptions;
+
+                // Following attributes MAY be provided by engine
+                foreach( [ 'detectedLocale', 'params', 'matchedRoute', 'matchedRouteOptions' ] as $attribute)
+                {
+                    if (isset($engine->$attribute))
+                    {
+                        $this->$attribute = $engine->$attribute;
+                    }
+                }
 
                 return $this->controller;
             }

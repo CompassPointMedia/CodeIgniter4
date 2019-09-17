@@ -75,10 +75,14 @@ class Modules
     | extensive CMS/article plugin.  Pages might include /about-us, /contact-us,
     | etc. while articles might include /how-to-train-your-dragon/2019/08 or
     | /why-i-am-frustrated-with-star-wars.  It would make sense to declare the
-    | pages module first if present, and then the articles module.  Obviously you
-    | can't have an article title and a page resolve to the same value, but
-    | a little preventative coding would avoid the prefix `/articles` all the
-    | time - why have part of a url you don't really need?
+    | pages module first if present, and then the articles module.  It's no
+    | longer a matter of regex routes but simple the module claiming the $uri
+    | as its own.
+    |
+    | Obviously you can't have an article title and a page resolve to the same
+    | value, but a little preventative coding on the creation end would avoid
+    | the prefix `/articles` being needed - why have part of a url you don't
+    | really need?
     */
     /**
      * Whether or not to utilize the Module Routing feature, false turns it off.
