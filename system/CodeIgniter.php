@@ -130,7 +130,7 @@ class CodeIgniter
 	 */
 	protected $method;
 
-	/**
+    /**
 	 * Output handler to use.
 	 *
 	 * @var string
@@ -292,7 +292,7 @@ class CodeIgniter
 	 */
 	protected function handleRequest(RouteCollectionInterface $routes = null, $cacheConfig, bool $returnResponse = false)
 	{
-		$routeFilter = $this->tryToRouteIt($routes);
+	    $routeFilter = $this->tryToRouteIt($routes);
 
 		// Run "before" filters
 		$filters = Services::filters();
@@ -327,7 +327,7 @@ class CodeIgniter
 		// Closure controller has run in startController().
 		if (! is_callable($this->controller))
 		{
-			$controller = $this->createController();
+		    $controller = $this->createController();
 
 			// Is there a "post_controller_constructor" event?
 			Events::trigger('post_controller_constructor');
@@ -816,7 +816,17 @@ class CodeIgniter
 	 */
 	protected function createController()
 	{
-		$class = new $this->controller();
+	    $constructor = '__construct';
+	    if (! is_null($this->router->controllerConstructor()) && method_exists($this->controller, $constructor))
+	    {
+            // Allow passage of constructor arguments to the controller if desired,
+            // since neither Controller or BaseController classes have constructor methods
+            $class = new $this->controller(...$this->router->controllerConstructor());
+        }
+        else
+        {
+            $class = new $this->controller();
+        }
 		$class->initController($this->request, $this->response, Services::logger());
 
 		$this->benchmark->stop('controller_constructor');

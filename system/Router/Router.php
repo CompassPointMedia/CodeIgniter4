@@ -124,6 +124,13 @@ class Router implements RouterInterface
 	 */
 	protected $detectedLocale = null;
 
+    /**
+     * Variables to be passed to selected controller constructor.
+     *
+     * @var null
+     */
+	protected $controllerConstructor = null;
+
 	/**
 	 * The filter info from Route Collection
 	 * if the matched route should be filtered.
@@ -189,6 +196,11 @@ class Router implements RouterInterface
                     {
                         $this->$attribute = $engine->$attribute;
                     }
+                }
+
+                if (! is_null($engine->controllerConstructor))
+                {
+                    $this->controllerConstructor = $engine->controllerConstructor;
                 }
 
                 return $this->controller;
@@ -300,6 +312,15 @@ class Router implements RouterInterface
 	{
 		return $this->params;
 	}
+
+    /**
+     *
+     * @return mixed
+     */
+	public function controllerConstructor(): array
+    {
+        return $this->controllerConstructor;
+    }
 
 	//--------------------------------------------------------------------
 

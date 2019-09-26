@@ -3,13 +3,6 @@
 interface ModuleRoutingInterface
 {
     /**
-     * Whether or not we need a database to figure out if this is mine
-     * @var bool
-     * @return boolean
-     */
-    public function usesDb() : bool;
-
-    /**
      * Main call function; looks at URI and determines the following:
      *  - is this from my system
      * @todo: work on these
@@ -27,7 +20,8 @@ interface ModuleRoutingInterface
      *
      * @param string $HTTPVerb
      * @param string $uri
+     * @param array $module
      * @return bool
      */
-    public function isMyUri(string $HTTPVerb, string $uri) : bool;
+    public function isMyUri(string $HTTPVerb, string $uri, array $module = []) : bool;
 }

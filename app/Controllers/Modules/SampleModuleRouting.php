@@ -9,7 +9,7 @@ class SampleModuleRouting implements \CodeIgniter\Module\ModuleRoutingInterface
     /**
      * The following 6 properties are currently set in CI4 in Router::checkRoutes()
      * and need to be set in the client's Module Router via the ::isMyUri() method.
-     * Note that with Module Routing ANY regex pattern might be grabbed by the module
+     * Note that with Module Routing ANY regex pattern might be grabbed by the module.
 
     detectedLocale : empty (or set if detected)
 
@@ -27,8 +27,11 @@ class SampleModuleRouting implements \CodeIgniter\Module\ModuleRoutingInterface
         [1] => \App\Controllers\Modules\SampleVendorCMS::renderArticle
     )
 
-    matchedRoutOptions : Array()
+    matchedRouteOptions : Array()
 
+
+    The variable $controllerConstructor allows constructor arguments from one or more
+    modules to be sent to constructor of the selected controller when instantiated.
      */
     public $detectedLocale = null;
 
@@ -42,19 +45,13 @@ class SampleModuleRouting implements \CodeIgniter\Module\ModuleRoutingInterface
 
     public $matchedRouteOptions = null;
 
+    public $controllerConstructor = null;
+
     /**
      * @var $locals array supported by the CMS
      */
     public $locales = ['en-us' => 'en', 'en-gr' => 'en', 'fr' => 'fr', 'es' => 'es'];
 
-
-
-    public function usesDb(): bool
-    {
-        // TODO: Implement usesDb() method.
-        // An example of something a Module Routing system might want to know from this class
-        return true;
-    }
 
     /**
      * @param $segment
@@ -152,9 +149,10 @@ class SampleModuleRouting implements \CodeIgniter\Module\ModuleRoutingInterface
     /**
      * @param string $HTTPVerb
      * @param string $uri
+     * @param array $module
      * @return bool
      */
-    public function isMyUri(string $HTTPVerb, string $uri): bool
+    public function isMyUri(string $HTTPVerb, string $uri, array $module = []): bool
     {
 
         /* This is example coding ONLY, not the way we'd probably handle it with an actual db table */

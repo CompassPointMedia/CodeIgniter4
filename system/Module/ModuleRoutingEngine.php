@@ -41,7 +41,7 @@ class ModuleRoutingEngine
         [1] => \App\Controllers\Modules\SampleVendorCMS::renderArticle
     )
 
-    matchedRoutOptions : Array()
+    matchedRouteOptions : Array()
 
      */
     public $detectedLocale = null;
@@ -55,6 +55,8 @@ class ModuleRoutingEngine
     public $matchedRoute = null;
 
     public $matchedRouteOptions = null;
+
+    public $controllerConstructor = null;
 
 
     public function __construct($modules, $routes)
@@ -76,7 +78,7 @@ class ModuleRoutingEngine
      */
     public function runThrough($HTTPVerb, $uri)
     {
-
+        $uriClaimed = 0;
         foreach($this->routingModules as $module)
         {
             if(isset($module['active']) && $module['active'] === false)
@@ -93,7 +95,7 @@ class ModuleRoutingEngine
                 throw new \ErrorException('Declared routing module ' . $module['class'] . ' does not correctly implement interface \CodeIgniter\Module\ModuleRoutingInterface.php');
             }
 
-            if($routeInspect->isMyUri($HTTPVerb, $uri))
+            if($routeInspect->isMyUri($HTTPVerb, $uri, $module))
             {
                 //@todo: we may want to get the first match but in CMS debugging mode continue through the list and see if there are any conflicts, and either exit or log the incident
 
@@ -108,12 +110,22 @@ class ModuleRoutingEngine
                 $this->matchedRoute = $routeInspect->matchedRoute;
 
                 $this->matchedRouteOptions = $routeInspect->matchedRouteOptions;
-                return true;
+
+                if (! empty($routeInspect->controllerConstructor))
+                {
+                    //@todo: allow user-defined helper function to assemble controllerConstructor vars returned
+                    $this->controllerConstructor = array_merge(
+                        $this->controllerConstructor ?? [],
+                        [$routeInspect->controllerConstructor]
+                    );
+                }
+
+                $uriClaimed++;
             }
 
             $routeInspect = null;
         }
-        return false;
+        return $uriClaimed ? true : false;
 
     }
 }
