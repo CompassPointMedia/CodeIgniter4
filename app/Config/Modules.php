@@ -97,8 +97,12 @@ class Modules
         [
             'active' => true,
             'name' => 'Sample Module Routing temp-stored in Controllers/Modules',
-            'class' => \App\Controllers\Modules\SampleModuleRouting::class,
+            'class' => \App\Controllers\Modules\SamplePrimaryModuleRouting::class,
 
+        ],[
+            'active' => true,
+            'name' => 'CMS/Article Module, handles articles stored in database',
+            'class' => \App\Controllers\Modules\SampleVendorCMS::class,
         ]
     ];
 

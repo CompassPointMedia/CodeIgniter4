@@ -119,6 +119,12 @@ class ModuleRoutingEngine
                         [$routeInspect->controllerConstructor]
                     );
                 }
+                if (! empty($module['exclusive']))
+                {
+                    // Revert to only this module's input for constructor.
+                    $this->controllerConstructor = isset($routeInspect->controllerConstructor) && ! is_null($routeInspect->controllerConstructor) ? $routeInspect->controllerConstructor : null;
+                    return true;
+                }
 
                 $uriClaimed++;
             }

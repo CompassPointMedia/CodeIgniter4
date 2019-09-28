@@ -231,7 +231,7 @@ class CodeIgniter
 		$response    = $this->displayCache($cacheConfig);
 		if ($response instanceof ResponseInterface)
 		{
-			if ($returnResponse)
+		    if ($returnResponse)
 			{
 				return $response;
 			}
@@ -239,7 +239,6 @@ class CodeIgniter
 			$this->response->pretend($this->useSafeOutput)->send();
 			$this->callExit(EXIT_SUCCESS);
 		}
-
 		try
 		{
 			return $this->handleRequest($routes, $cacheConfig, $returnResponse);
@@ -321,13 +320,20 @@ class CodeIgniter
 				return $possibleRedirect->send();
 			}
 		}
-
 		$returned = $this->startController();
 
-		// Closure controller has run in startController().
-		if (! is_callable($this->controller))
+		// Closure controllers will have run in startController().
+		if (! is_callable($this->controller) ||
+            (is_object($this->controller) && get_class($this->controller) !== 'Closure'))
 		{
-		    $controller = $this->createController();
+		    if (is_object($this->controller) && get_class($this->controller) !== 'Closure')
+		    {
+                $controller = $this->controller;
+            }
+            else
+            {
+                $controller = $this->createController();
+            }
 
 			// Is there a "post_controller_constructor" event?
 			Events::trigger('post_controller_constructor');
@@ -775,7 +781,9 @@ class CodeIgniter
 	 * Now that everything has been setup, this method attempts to run the
 	 * controller method and make the script go. If it's not able to, will
 	 * show the appropriate Page Not Found error.
-	 */
+     *
+     * @return mixed
+     */
 	protected function startController()
 	{
 		$this->benchmark->start('controller');
@@ -793,6 +801,11 @@ class CodeIgniter
 		{
 			throw PageNotFoundException::forEmptyController();
 		}
+
+		if (gettype($this->controller) !== 'string')
+        {
+            return;
+        }
 
 		// Try to autoload the class
 		if (! class_exists($this->controller, true) || $this->method[0] === '_')
@@ -820,7 +833,9 @@ class CodeIgniter
 	    if (! is_null($this->router->controllerConstructor()) && method_exists($this->controller, $constructor))
 	    {
             // Allow passage of constructor arguments to the controller if desired,
-            // since neither Controller or BaseController classes have constructor methods
+            // since neither Controller or BaseController classes have constructor methods.
+            // If $this->controller is already a passed object then it will already be
+            // instantiated, but won't have the benefit of this construction.
             $class = new $this->controller(...$this->router->controllerConstructor());
         }
         else

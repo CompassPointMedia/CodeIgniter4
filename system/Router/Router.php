@@ -170,15 +170,6 @@ class Router implements RouterInterface
 	{
 		$this->translateURIDashes = $this->collection->shouldTranslateURIDashes();
 
-		// If we cannot find a URI to match against, then
-		// everything runs off of its default settings.
-		if (empty($uri))
-		{
-			return strpos($this->controller, '\\') === false
-				? $this->collection->getDefaultNamespace() . $this->controller
-				: $this->controller;
-		}
-
 		// New Module Routing Engine feature
 		if (! empty($this->collection->getModuleConfig()->useModuleRouting) && ! empty($this->collection->getModuleConfig()->routingModules)){
             $engine = new ModuleRoutingEngine($this->collection->getModuleConfig(), []);
@@ -198,16 +189,28 @@ class Router implements RouterInterface
                     }
                 }
 
+                // Controller constructor arguments will be called only if value is non-null
                 if (! is_null($engine->controllerConstructor))
                 {
                     $this->controllerConstructor = $engine->controllerConstructor;
                 }
 
+                // Module Routing has the ability to return $this->controller as the actual instantiated
+                // object/class that was used for efficiency.
                 return $this->controller;
             }
         }
 
-		if ($this->checkRoutes($uri))
+        // If we cannot find a URI to match against, then
+        // everything runs off of its default settings.
+        if (empty($uri))
+        {
+            return strpos($this->controller, '\\') === false
+                ? $this->collection->getDefaultNamespace() . $this->controller
+                : $this->controller;
+        }
+
+        if ($this->checkRoutes($uri))
 		{
 		    if ($this->collection->isFiltered($this->matchedRoute[0]))
 			{
@@ -317,7 +320,7 @@ class Router implements RouterInterface
      *
      * @return mixed
      */
-	public function controllerConstructor(): array
+	public function controllerConstructor()
     {
         return $this->controllerConstructor;
     }
