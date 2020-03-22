@@ -144,7 +144,7 @@ back, unchanged. In this example, it would return 'Errors.errorEmailMissing' if 
 Replacing Parameters
 --------------------
 
-.. note:: The following functions all require the `intl <http://php.net/manual/en/book.intl.php>`_ extension to
+.. note:: The following functions all require the `intl <https://www.php.net/manual/en/book.intl.php>`_ extension to
     be loaded on your system in order to work. If the extension is not loaded, no replacement will be attempted.
     A great overview can be found over at `Sitepoint <https://www.sitepoint.com/localization-demystified-understanding-php-intl/>`_.
 
@@ -172,7 +172,7 @@ You can also use named keys to make it easier to keep things straight, if you'd 
     echo lang("Tests.namedApples", ['number_apples' => 3]);
 
 Obviously, you can do more than just number replacement. According to the
-`official ICU docs <http://icu-project.org/apiref/icu4c/classMessageFormat.html#details>`_ for the underlying
+`official ICU docs <https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/classMessageFormat.html#details>`_ for the underlying
 library, the following types of data can be replaced:
 
 * numbers - integer, currency, percent
@@ -293,6 +293,6 @@ You could download that repository, and copy its ``Language`` folder
 into your ``app``. The incorporated translations will be automatically
 picked up because the ``App`` namespace is mapped to your ``app`` folder.
 
-Alternately, a better practice would be to ``composer install codeigniter4/translations``
+Alternately, a better practice would be to ``composer require codeigniter4/translations``
 inside your project, and the translated messages will be automatically picked
 up because the translations folders get mapped appropriately.

@@ -213,6 +213,7 @@ You can use (rollback) with the following options:
 
 - (-g) to choose database group, otherwise default database group will be used.
 - (-b) to choose a batch: natural numbers specify the batch, negatives indicate a relative batch
+- (-f) to force a bypass confirmation question, it is only asked in a production environment
 
 **refresh**
 
@@ -225,6 +226,7 @@ You can use (refresh) with the following options:
 - (-g) to choose database group, otherwise default database group will be used.
 - (-n) to choose namespace, otherwise (App) namespace will be used.
 - (-all) to refresh all namespaces
+- (-f) to force a bypass confirmation question, it is only asked in a production environment
 
 **status**
 
@@ -261,7 +263,6 @@ The following is a table of all the config options for migrations, available in 
 Preference                 Default                Options                    Description
 ========================== ====================== ========================== =============================================================
 **enabled**                TRUE                   TRUE / FALSE               Enable or disable migrations.
-**path**                   'Database/Migrations/' None                       The path to your migrations folder.
 **table**                  migrations             None                       The table name for storing the schema version number.
 **timestampFormat**        Y-m-d-His\_                                        The format to use for timestamps when creating a migration.
 ========================== ====================== ========================== =============================================================

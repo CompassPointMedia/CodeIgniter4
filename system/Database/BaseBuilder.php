@@ -8,7 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
- * Copyright (c) 2019 CodeIgniter Foundation
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2019 CodeIgniter Foundation
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -169,6 +169,15 @@ class BaseBuilder
 	protected $QBWhereGroupCount = 0;
 
 	/**
+	 * Ignore data that cause certain
+	 * exceptions, for example in case of
+	 * duplicate keys.
+	 *
+	 * @var boolean
+	 */
+	protected $QBIgnore = false;
+
+	/**
 	 * A reference to the database connection.
 	 *
 	 * @var BaseConnection
@@ -205,6 +214,14 @@ class BaseBuilder
 	protected $binds = [];
 
 	/**
+	 * Collects the key count for named parameters
+	 * in the Query object.
+	 *
+	 * @var array
+	 */
+	protected $bindsKeyCount = [];
+
+	/**
 	 * Some databases, like SQLite, do not by default
 	 * allow limiting of delete clauses.
 	 *
@@ -219,6 +236,14 @@ class BaseBuilder
 	 * @var boolean
 	 */
 	protected $canLimitWhereUpdates = true;
+
+	/**
+	 * Specifies which sql statements
+	 * support the ignore option.
+	 *
+	 * @var array
+	 */
+	protected $supportedIgnoreStatements = [];
 
 	/**
 	 * Builder testing mode status.
@@ -287,6 +312,25 @@ class BaseBuilder
 	public function getBinds(): array
 	{
 		return $this->binds;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Ignore
+	 *
+	 * Set ignore Flag for next insert,
+	 * update or delete query.
+	 *
+	 * @param boolean $ignore
+	 *
+	 * @return BaseBuilder
+	 */
+	public function ignore(bool $ignore = true)
+	{
+		$this->QBIgnore = $ignore;
+
+		return $this;
 	}
 
 	//--------------------------------------------------------------------
@@ -943,13 +987,29 @@ class BaseBuilder
 	 * @param string        $type
 	 * @param boolean       $escape
 	 * @param string        $clause (Internal use only)
+	 * @throws InvalidArgumentException
 	 *
 	 * @return BaseBuilder
 	 */
 	protected function _whereIn(string $key = null, $values = null, bool $not = false, string $type = 'AND ', bool $escape = null, string $clause = 'QBWhere')
 	{
-		if ($key === null || $values === null || (! is_array($values) && ! ($values instanceof Closure)))
+		if (empty($key) || ! is_string($key))
 		{
+			if (CI_DEBUG)
+			{
+				throw new InvalidArgumentException(sprintf('%s() expects $key to be a non-empty string', debug_backtrace(0, 2)[1]['function']));
+			} 
+			
+			return $this;
+		}
+
+		if ($values === null || (! is_array($values) && ! ($values instanceof Closure)))
+		{
+			if (CI_DEBUG)
+			{
+				throw new InvalidArgumentException(sprintf('%s() expects $values to be of type array or closure', debug_backtrace(0, 2)[1]['function']));
+			}
+			
 			return $this;
 		}
 
@@ -2037,7 +2097,7 @@ class BaseBuilder
 	 */
 	protected function _insertBatch(string $table, array $keys, array $values): string
 	{
-		return 'INSERT INTO ' . $table . ' (' . implode(', ', $keys) . ') VALUES ' . implode(', ', $values);
+		return 'INSERT ' . $this->compileIgnore('insert') . 'INTO ' . $table . ' (' . implode(', ', $keys) . ') VALUES ' . implode(', ', $values);
 	}
 
 	//--------------------------------------------------------------------
@@ -2106,6 +2166,8 @@ class BaseBuilder
 	 *
 	 * @param boolean $reset TRUE: reset QB values; FALSE: leave QB values alone
 	 *
+	 * @throws DatabaseException
+	 *
 	 * @return string
 	 */
 	public function getCompiledInsert(bool $reset = true): string
@@ -2138,6 +2200,8 @@ class BaseBuilder
 	 *
 	 * @param array   $set    An associative array of insert values
 	 * @param boolean $escape Whether to escape values and identifiers
+	 *
+	 * @throws DatabaseException
 	 *
 	 * @return BaseResult|Query|false
 	 */
@@ -2216,7 +2280,7 @@ class BaseBuilder
 	 */
 	protected function _insert(string $table, array $keys, array $unescapedKeys): string
 	{
-		return 'INSERT INTO ' . $table . ' (' . implode(', ', $keys) . ') VALUES (' . implode(', ', $unescapedKeys) . ')';
+		return 'INSERT ' . $this->compileIgnore('insert') . 'INTO ' . $table . ' (' . implode(', ', $keys) . ') VALUES (' . implode(', ', $unescapedKeys) . ')';
 	}
 
 	//--------------------------------------------------------------------
@@ -2330,6 +2394,8 @@ class BaseBuilder
 	 * @param mixed   $where
 	 * @param integer $limit
 	 *
+	 * @throws DatabaseException
+	 *
 	 * @return boolean    TRUE on success, FALSE on failure
 	 */
 	public function update(array $set = null, $where = null, int $limit = null): bool
@@ -2393,14 +2459,14 @@ class BaseBuilder
 	 */
 	protected function _update(string $table, array $values): string
 	{
-		$valstr = [];
+		$valStr = [];
 
 		foreach ($values as $key => $val)
 		{
-			$valstr[] = $key . ' = ' . $val;
+			$valStr[] = $key . ' = ' . $val;
 		}
 
-		return 'UPDATE ' . $table . ' SET ' . implode(', ', $valstr)
+		return 'UPDATE ' . $this->compileIgnore('update') . $table . ' SET ' . implode(', ', $valStr)
 				. $this->compileWhereHaving('QBWhere')
 				. $this->compileOrderBy()
 				. ($this->QBLimit ? $this->_limit(' ') : '');
@@ -2530,6 +2596,7 @@ class BaseBuilder
 	{
 		$ids   = [];
 		$final = [];
+
 		foreach ($values as $key => $val)
 		{
 			$ids[] = $val[$index];
@@ -2553,7 +2620,7 @@ class BaseBuilder
 
 		$this->where($index . ' IN(' . implode(',', $ids) . ')', null, false);
 
-		return 'UPDATE ' . $table . ' SET ' . substr($cases, 0, -2) . $this->compileWhereHaving('QBWhere');
+		return 'UPDATE ' . $this->compileIgnore('update') . $table . ' SET ' . substr($cases, 0, -2) . $this->compileWhereHaving('QBWhere');
 	}
 
 	//--------------------------------------------------------------------
@@ -2806,7 +2873,7 @@ class BaseBuilder
 	 */
 	protected function _delete(string $table): string
 	{
-		return 'DELETE FROM ' . $table . $this->compileWhereHaving('QBWhere')
+		return 'DELETE ' . $this->compileIgnore('delete') . 'FROM ' . $table . $this->compileWhereHaving('QBWhere')
 				. ($this->QBLimit ? ' LIMIT ' . $this->QBLimit : '');
 	}
 
@@ -2923,6 +2990,32 @@ class BaseBuilder
 	//--------------------------------------------------------------------
 
 	/**
+	 * Compile Ignore Statement
+	 *
+	 * Checks if the ignore option is supported by
+	 * the Database Driver for the specific statement.
+	 *
+	 * @param string $statement
+	 *
+	 * @return string
+	 */
+	protected function compileIgnore(string $statement)
+	{
+		$sql = '';
+
+		if ($this->QBIgnore &&
+			isset($this->supportedIgnoreStatements[$statement])
+		)
+		{
+			$sql = trim($this->supportedIgnoreStatements[$statement]) . ' ';
+		}
+
+		return $sql;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
 	 * Compile WHERE, HAVING statements
 	 *
 	 * Escapes identifiers in WHERE and HAVING statements at execution time.
@@ -2976,6 +3069,17 @@ class BaseBuilder
 
 					if (! empty($matches[4]))
 					{
+						$protectIdentifiers = false;
+						if (strpos($matches[4], '.') !== false)
+						{
+							$protectIdentifiers = true;
+						}
+
+						if (strpos($matches[4], ':') === false)
+						{
+							$matches[4] = $this->db->protectIdentifiers(trim($matches[4]), false, $protectIdentifiers);
+						}
+
 						$matches[4] = ' ' . $matches[4];
 					}
 
@@ -3242,6 +3346,7 @@ class BaseBuilder
 			'QBOrderBy' => [],
 			'QBKeys'    => [],
 			'QBLimit'   => false,
+			'QBIgnore'  => false,
 		]);
 	}
 
@@ -3321,12 +3426,11 @@ class BaseBuilder
 			return $key;
 		}
 
-		$count = 0;
-
-		while (array_key_exists($key . $count, $this->binds))
+		if (!array_key_exists($key, $this->bindsKeyCount))
 		{
-			++$count;
+			$this->bindsKeyCount[$key] = 0;
 		}
+		$count = $this->bindsKeyCount[$key]++;
 
 		$this->binds[$key . $count] = [
 			$value,

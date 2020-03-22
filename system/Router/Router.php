@@ -8,7 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
- * Copyright (c) 2019 CodeIgniter Foundation
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2019 CodeIgniter Foundation
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -171,6 +171,7 @@ class Router implements RouterInterface
 	{
 		$this->translateURIDashes = $this->collection->shouldTranslateURIDashes();
 
+// <<<<<<< HEAD
 		// New Module Routing Engine feature
 		if (! empty($this->collection->getModuleConfig()->useModuleRouting) && ! empty($this->collection->getModuleConfig()->routingModules)){
             $engine = new ModuleRoutingEngine($this->collection->getModuleConfig(), []);
@@ -204,7 +205,7 @@ class Router implements RouterInterface
 
         // If we cannot find a URI to match against, then
         // everything runs off of its default settings.
-        if (empty($uri))
+        if ($uri === null || $uri === '')
         {
             return strpos($this->controller, '\\') === false
                 ? $this->collection->getDefaultNamespace() . $this->controller
@@ -476,6 +477,11 @@ class Router implements RouterInterface
 			// Does the RegEx match?
 			if (preg_match('#^' . $key . '$#', $uri, $matches))
 			{
+				// Is this route supposed to redirect to another?
+				if ($this->collection->isRedirect($key))
+				{
+					throw new RedirectException(key($val), $this->collection->getRedirectCode($key));
+				}
 				// Store our locale so CodeIgniter object can
 				// assign it to the Request.
 				if (isset($localeSegment))
@@ -534,12 +540,6 @@ class Router implements RouterInterface
 					$val = $controller . '::' . $method;
 				}
 
-				// Is this route supposed to redirect to another?
-				if ($this->collection->isRedirect($key))
-				{
-					throw new RedirectException($val, $this->collection->getRedirectCode($key));
-				}
-
 				$this->setRequest(explode('/', $val));
 
 				$this->matchedRoute = [
@@ -593,6 +593,32 @@ class Router implements RouterInterface
 		if (! empty($segments))
 		{
 			$this->params = $segments;
+		}
+
+		if ($this->collection->getHTTPVerb() !== 'cli')
+		{
+			$controller  = '\\' . $this->collection->getDefaultNamespace();
+			$controller .= $this->directory ? str_replace('/', '\\', $this->directory) : '';
+			$controller .= $this->controllerName();
+			$controller  = strtolower($controller);
+			$methodName  = strtolower($this->methodName());
+
+			foreach ($this->collection->getRoutes('cli') as $route)
+			{
+				if (is_string($route))
+				{
+					$route = strtolower($route);
+					if (strpos($route, $controller . '::' . $methodName) === 0)
+					{
+						throw new PageNotFoundException();
+					}
+
+					if ($route === $controller)
+					{
+						throw new PageNotFoundException();
+					}
+				}
+			}
 		}
 
 		// Load the file so that it's available for CodeIgniter.
@@ -656,10 +682,11 @@ class Router implements RouterInterface
 	 * @param string|null   $dir
 	 * @param boolean|false $append
 	 */
-	protected function setDirectory(string $dir = null, bool $append = false)
+	public function setDirectory(string $dir = null, bool $append = false)
 	{
 		if (empty($dir))
 		{
+			$this->directory = null;
 			return;
 		}
 

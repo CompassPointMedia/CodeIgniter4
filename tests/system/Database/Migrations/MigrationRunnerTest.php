@@ -193,7 +193,7 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 								 'version'   => '2018-01-24-102302',
 								 'class'     => 'Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
 								 'namespace' => 'Tests\Support\MigrationTestMigrations',
-								 'uid'       => '2018-01-24-102302Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
+								 'uid'       => '20180124102302Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
 							 ];
 		$mig1->uid = $runner->getObjectUid($mig1);
 
@@ -204,12 +204,11 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 		$this->assertEquals($mig2, array_shift($migrations));
 	}
 
-	/**
-	 * @expectedException        \CodeIgniter\Exceptions\ConfigException
-	 * @expectedExceptionMessage Migrations have been loaded but are disabled or setup incorrectly.
-	 */
 	public function testMigrationThrowsDisabledException()
 	{
+		$this->expectException('CodeIgniter\Exceptions\ConfigException');
+		$this->expectExceptionMessage('Migrations have been loaded but are disabled or setup incorrectly.');
+
 		$config          = $this->config;
 		$config->enabled = false;
 		$runner          = new MigrationRunner($config);

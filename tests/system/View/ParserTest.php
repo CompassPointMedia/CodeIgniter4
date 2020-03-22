@@ -3,7 +3,7 @@
 use CodeIgniter\View\Parser;
 use CodeIgniter\View\Exceptions\ViewException;
 
-class ParserTest extends \CIUnitTestCase
+class ParserTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected function setUp(): void
@@ -858,6 +858,28 @@ class ParserTest extends \CIUnitTestCase
 		$template = '{+ count "foo bar" baz "foo bar" +}';
 
 		$this->assertEquals('0. foo bar 1. baz 2. foo bar ', $parser->renderString($template));
+	}
+
+	/**
+	 * @group parserplugins
+	 */
+	public function testParserSingleTagWithNamedParams()
+	{
+		$parser = new Parser($this->config, $this->viewsDir, $this->loader);
+		$parser->addPlugin('read_params', function (array $params = []) {
+			$out = '';
+
+			foreach ($params as $index => $param)
+			{
+				$out .= "{$index}: {$param}. ";
+			}
+
+			return $out;
+		}, false);
+
+		$template = '{+ read_params title="Hello world" page=5 email=test@test.net +}';
+
+		$this->assertEquals('title: Hello world. page: 5. email: test@test.net. ', $parser->renderString($template));
 	}
 
 	//--------------------------------------------------------------------

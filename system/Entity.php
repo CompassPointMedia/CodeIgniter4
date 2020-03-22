@@ -8,7 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
- * Copyright (c) 2019 CodeIgniter Foundation
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2019 CodeIgniter Foundation
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -46,7 +46,7 @@ use CodeIgniter\Exceptions\CastException;
 /**
  * Entity encapsulation, for use with CodeIgniter\Model
  */
-class Entity
+class Entity implements \JsonSerializable
 {
 	/**
 	 * Maps names used in sets and gets against unique
@@ -165,7 +165,7 @@ class Entity
 		// allow our magic methods a chance to do their thing.
 		foreach ($this->attributes as $key => $value)
 		{
-			if (substr($key, 0, 1) === '_')
+			if (strpos($key, '_') === 0)
 			{
 				continue;
 			}
@@ -313,7 +313,7 @@ class Entity
 			$result = $this->mutateDate($result);
 		}
 		// Or cast it as something?
-		else if ($this->_cast && isset($this->casts[$key]) && ! empty($this->casts[$key]))
+		else if ($this->_cast && ! empty($this->casts[$key]))
 		{
 			$result = $this->castAs($result, $this->casts[$key]);
 		}
@@ -353,7 +353,7 @@ class Entity
 
 		if (array_key_exists($key, $this->casts))
 		{
-			$isNullable = substr($this->casts[$key], 0, 1) === '?';
+			$isNullable = strpos($this->casts[$key], '?') === 0;
 			$castTo     = $isNullable ? substr($this->casts[$key], 1) : $this->casts[$key];
 		}
 
@@ -471,7 +471,7 @@ class Entity
 			return $key;
 		}
 
-		if (isset($this->datamap[$key]) && ! empty($this->datamap[$key]))
+		if (! empty($this->datamap[$key]))
 		{
 			return $this->datamap[$key];
 		}
@@ -530,7 +530,7 @@ class Entity
 
 	protected function castAs($value, string $type)
 	{
-		if (substr($type, 0, 1) === '?')
+		if (strpos($type, '?') === 0)
 		{
 			if ($value === null)
 			{
@@ -576,7 +576,7 @@ class Entity
 				$value = $this->castAsJson($value, true);
 				break;
 			case 'datetime':
-				return new \DateTime($value);
+				return $this->mutateDate($value);
 				break;
 			case 'timestamp':
 				return strtotime($value);
@@ -602,7 +602,7 @@ class Entity
 		$tmp = ! is_null($value) ? ($asArray ? [] : new \stdClass) : null;
 		if (function_exists('json_decode'))
 		{
-			if ((is_string($value) && strlen($value) > 1 && in_array($value{0}, ['[', '{', '"'])) || is_numeric($value))
+			if ((is_string($value) && strlen($value) > 1 && in_array($value[0], ['[', '{', '"'])) || is_numeric($value))
 			{
 				$tmp = json_decode($value, $asArray);
 
@@ -613,5 +613,16 @@ class Entity
 			}
 		}
 		return $tmp;
+	}
+
+	/**
+	 * Support for json_encode()
+	 *
+	 * @return array|mixed
+	 * @throws \Exception
+	 */
+	public function jsonSerialize()
+	{
+		return $this->toArray();
 	}
 }

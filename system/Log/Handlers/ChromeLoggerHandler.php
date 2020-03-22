@@ -8,7 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
- * Copyright (c) 2019 CodeIgniter Foundation
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2019 CodeIgniter Foundation
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -39,9 +39,8 @@
 
 namespace CodeIgniter\Log\Handlers;
 
-use CodeIgniter\Events\Events;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Config\Services;
+use Config\Services;
 
 /**
  * Class ChromeLoggerHandler
@@ -123,7 +122,6 @@ class ChromeLoggerHandler extends BaseHandler implements HandlerInterface
 
 		$this->json['request_uri'] = (string) $request->uri;
 
-		Events::on('post_controller', [$this, 'sendLogs'], EVENT_PRIORITY_HIGH);
 	}
 
 	//--------------------------------------------------------------------
@@ -163,10 +161,12 @@ class ChromeLoggerHandler extends BaseHandler implements HandlerInterface
 		}
 
 		$this->json['rows'][] = [
-			$message,
+			[$message],
 			$backtraceMessage,
 			$type,
 		];
+
+		$this->sendLogs();
 
 		return true;
 	}

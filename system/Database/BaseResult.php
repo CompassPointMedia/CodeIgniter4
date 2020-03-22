@@ -8,7 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
- * Copyright (c) 2019 CodeIgniter Foundation
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2019 CodeIgniter Foundation
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,6 +38,8 @@
  */
 
 namespace CodeIgniter\Database;
+
+use CodeIgniter\Entity;
 
 /**
  * Class BaseResult
@@ -192,7 +194,7 @@ abstract class BaseResult implements ResultInterface
 
 		while ($row = $this->fetchObject($className))
 		{
-			if (method_exists($row, 'syncOriginal'))
+			if (! is_subclass_of($row, Entity::class) && method_exists($row, 'syncOriginal'))
 			{
 				$row->syncOriginal();
 			}
@@ -283,7 +285,7 @@ abstract class BaseResult implements ResultInterface
 		is_null($this->rowData) || $this->dataSeek(0);
 		while ($row = $this->fetchObject())
 		{
-			if (method_exists($row, 'syncOriginal'))
+			if (! is_subclass_of($row, Entity::class) && method_exists($row, 'syncOriginal'))
 			{
 				$row->syncOriginal();
 			}

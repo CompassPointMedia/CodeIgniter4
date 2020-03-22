@@ -7,7 +7,7 @@ use CodeIgniter\Router\Exceptions\RouterException;
 /**
  * @backupGlobals enabled
  */
-class RouteCollectionTest extends \CIUnitTestCase
+class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	public function tearDown(): void
@@ -806,6 +806,17 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$this->expectException(RouterException::class);
 		$match = $routes->reverseRoute('myController::goto', 13, 'string');
 	}
+	//--------------------------------------------------------------------
+
+	public function testReverseRoutingWithLocale()
+	{
+		$routes = $this->getCollector();
+
+		$routes->add('{locale}/contact', 'myController::goto');
+
+		$this->assertEquals('/en/contact', $routes->reverseRoute('myController::goto'));
+
+	}
 
 	//--------------------------------------------------------------------
 
@@ -893,6 +904,25 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$routes = $this->getCollector();
 
 		$routes->add('zombies', 'Zombies::index', ['as' => 'namedRoute']);
+		$routes->addRedirect('users', 'namedRoute', 307);
+
+		$expected = [
+			'users'   => [
+				'zombies' => '\Zombies::index',
+			],
+			'zombies' => '\Zombies::index',
+		];
+
+		$this->assertEquals($expected, $routes->getRoutes());
+		$this->assertTrue($routes->isRedirect('users'));
+		$this->assertEquals(307, $routes->getRedirectCode('users'));
+	}
+
+	public function testAddRedirectGetMethod()
+	{
+		$routes = $this->getCollector();
+
+		$routes->get('zombies', 'Zombies::index', ['as' => 'namedRoute']);
 		$routes->addRedirect('users', 'namedRoute', 307);
 
 		$expected = [
@@ -1088,7 +1118,7 @@ class RouteCollectionTest extends \CIUnitTestCase
 
 		$routes = $this->getCollector($config, [], $moduleConfig);
 
-		$routes->add('testing', 'MainRoutes::index');
+		$routes->add('testing', 'MainRoutes::index', ['as' => 'testing-index']);
 
 		$match = $routes->getRoutes();
 
@@ -1324,7 +1354,7 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$routes->setDefaultMethod('index');
 		$routes->setHTTPVerb('get');
 
-		$routes->get('/', 'App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
+		$routes->get('/', '\App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
 		$routes->get('/', 'Home::index', ['subdomain' => 'dev']);
 
 		$expects = '\App\Controllers\Site\CDoc';
@@ -1344,7 +1374,7 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$routes->setDefaultController('Home');
 		$routes->setDefaultMethod('index');
 
-		$routes->get('/', 'App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
+		$routes->get('/', '\App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
 		$routes->get('/', 'Home::index');
 
 		// the second rule applies, so overwrites the first
@@ -1366,7 +1396,7 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$routes->setDefaultMethod('index');
 
 		$routes->get('/', 'Home::index');
-		$routes->get('/', 'App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
+		$routes->get('/', '\App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
 
 		$expects = '\App\Controllers\Site\CDoc';
 
@@ -1386,7 +1416,7 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$routes->setDefaultMethod('index');
 
 		$routes->get('/', 'Home::index', ['as' => 'ddd']);
-		$routes->get('/', 'App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
+		$routes->get('/', '\App\Controllers\Site\CDoc::index', ['subdomain' => 'doc', 'as' => 'doc_index']);
 
 		$expects = '\App\Controllers\Site\CDoc';
 
@@ -1406,11 +1436,43 @@ class RouteCollectionTest extends \CIUnitTestCase
 		$routes->setDefaultMethod('index');
 
 		$routes->get('/', 'Home::index', ['as' => 'ddd']);
-		$routes->get('/', 'App\Controllers\Site\CDoc::index', ['hostname' => 'doc.domain.com', 'as' => 'doc_index']);
+		$routes->get('/', '\App\Controllers\Site\CDoc::index', ['hostname' => 'doc.domain.com', 'as' => 'doc_index']);
 
 		$expects = '\App\Controllers\Site\CDoc';
 
 		$this->assertEquals($expects, $router->handle('/'));
+	}
+
+	//--------------------------------------------------------------------
+	// Tests for router DefaultNameSpace issue
+	// @see https://github.com/codeigniter4/CodeIgniter4/issues/2423
+
+	public function testRouteDefaultNameSpace()
+	{
+		Services::request()->setMethod('get');
+		$routes = $this->getCollector();
+		$router = new Router($routes, Services::request());
+
+		$routes->setDefaultNamespace('App\Controllers');
+		$routes->get('/', 'Core\Home::index');
+
+		$expects = '\App\Controllers\Core\Home';
+
+		$this->assertEquals($expects, $router->handle('/'));
+	}
+
+	public function testZeroAsURIPath()
+	{
+		Services::request()->setMethod('get');
+		$routes = $this->getCollector();
+		$router = new Router($routes, Services::request());
+
+		$routes->setDefaultNamespace('App\Controllers');
+		$routes->get('/0', 'Core\Home::index');
+
+		$expects = '\App\Controllers\Core\Home';
+
+		$this->assertEquals($expects, $router->handle('/0'));
 	}
 
 }
