@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -664,6 +665,10 @@ class RouteCollection implements RouteCollectionInterface
         {
             $to = $this->routes['*'][$to]['route'];
         }
+        else if (array_key_exists($to, $this->routes['get']))
+        {
+            $to = $this->routes['get'][$to]['route'];
+        }
 
         $this->create('*', $from, $to, ['redirect' => $status]);
 
@@ -1225,7 +1230,8 @@ class RouteCollection implements RouteCollectionInterface
         {
             if (array_key_exists($search, $collection))
             {
-                return $this->fillRouteParams(key($collection[$search]['route']), $params);
+                $route = $this->fillRouteParams(key($collection[$search]['route']), $params);
+                return $this->localizeRoute($route);
             }
         }
 
@@ -1263,12 +1269,27 @@ class RouteCollection implements RouteCollectionInterface
                     continue;
                 }
 
-                return $this->fillRouteParams($from, $params);
+                $route = $this->fillRouteParams($from, $params);
+                return $this->localizeRoute($route);
             }
         }
 
         // If we're still here, then we did not find a match.
         return false;
+    }
+
+    //--------------------------------------------------------------------
+
+    /**
+     * Replaces the {locale} tag with the current application locale
+     *
+     * @param string $route
+     *
+     * @return string
+     */
+    protected function localizeRoute(string $route) :string
+    {
+        return strtr($route, ['{locale}' => Services::language()->getLocale()]);
     }
 
     //--------------------------------------------------------------------
@@ -1393,7 +1414,7 @@ class RouteCollection implements RouteCollectionInterface
         }
 
         // Limiting to subdomains?
-        else if (isset($options['subdomain']) && ! empty($options['subdomain']))
+        else if (! empty($options['subdomain']))
         {
             // If we don't match the current subdomain, then
             // we don't need to add the route.
@@ -1431,7 +1452,7 @@ class RouteCollection implements RouteCollectionInterface
         }
 
         // If no namespace found, add the default namespace
-        if (is_string($to) && strpos($to, '\\') === false)
+        if (is_string($to) && (strpos($to, '\\') === false || strpos($to, '\\') > 0))
         {
             $namespace = $options['namespace'] ?? $this->defaultNamespace;
             $to        = trim($namespace, '\\') . '\\' . $to;
