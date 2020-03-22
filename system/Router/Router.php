@@ -171,7 +171,6 @@ class Router implements RouterInterface
 	{
 		$this->translateURIDashes = $this->collection->shouldTranslateURIDashes();
 
-// <<<<<<< HEAD
 		// New Module Routing Engine feature
 		if (! empty($this->collection->getModuleConfig()->useModuleRouting) && ! empty($this->collection->getModuleConfig()->routingModules)){
             $engine = new ModuleRoutingEngine($this->collection->getModuleConfig(), []);
