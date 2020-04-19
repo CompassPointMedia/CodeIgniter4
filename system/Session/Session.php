@@ -94,7 +94,7 @@ class Session implements SessionInterface
 	 *
 	 * @var string
 	 */
-	protected $sessionSavePath = null;
+	protected $sessionSavePath;
 
 	/**
 	 * Whether to match the user's IP address when reading the session data.
@@ -499,7 +499,7 @@ class Session implements SessionInterface
 	 */
 	public function get(string $key = null)
 	{
-		if (! empty($key) && ! is_null($value = dot_array_search($key, $_SESSION ?? [])))
+		if (! empty($key) && (! is_null($value = isset($_SESSION[$key]) ? $_SESSION[$key] : null) || ! is_null($value = dot_array_search($key, $_SESSION ?? []))))
 		{
 			return $value;
 		}

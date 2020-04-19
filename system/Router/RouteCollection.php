@@ -118,7 +118,7 @@ class RouteCollection implements RouteCollectionInterface
 
     /**
      * Defined placeholders that can be used
-     * within the route match declarations
+     * within the
      *
      * @var array
      */
@@ -186,14 +186,14 @@ class RouteCollection implements RouteCollectionInterface
      *
      * @var string
      */
-    protected $group = null;
+    protected $group;
 
     /**
      * The current subdomain.
      *
      * @var string
      */
-    protected $currentSubdomain = null;
+    protected $currentSubdomain;
 
     /**
      * Stores copy of current options being
@@ -201,7 +201,7 @@ class RouteCollection implements RouteCollectionInterface
      *
      * @var null
      */
-    protected $currentOptions = null;
+    protected $currentOptions;
 
     /**
      * A little performance booster.

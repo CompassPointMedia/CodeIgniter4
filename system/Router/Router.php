@@ -109,21 +109,21 @@ class Router implements RouterInterface
 	 *
 	 * @var array|null
 	 */
-	protected $matchedRoute = null;
+	protected $matchedRoute;
 
 	/**
 	 * The options set for the matched route.
 	 *
 	 * @var array|null
 	 */
-	protected $matchedRouteOptions = null;
+	protected $matchedRouteOptions;
 
 	/**
 	 * The locale that was detected in a route.
 	 *
 	 * @var string
 	 */
-	protected $detectedLocale = null;
+	protected $detectedLocale;
 
     /**
      * Variables to be passed to selected controller constructor.
@@ -631,7 +631,7 @@ class Router implements RouterInterface
 		// We have to check for a length over 1, since by default it will be '\'
 		if (strpos($this->controller, '\\') === false && strlen($this->collection->getDefaultNamespace()) > 1)
 		{
-			$this->controller = str_replace('/', '\\', $this->collection->getDefaultNamespace() . $this->directory . $this->controllerName());
+			$this->controller = '\\' . ltrim(str_replace('/', '\\', $this->collection->getDefaultNamespace() . $this->directory . $this->controllerName()), '\\');
 		}
 	}
 

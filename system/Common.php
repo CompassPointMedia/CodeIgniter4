@@ -246,9 +246,11 @@ if (! function_exists('dd'))
 	 */
 	function dd(...$vars)
 	{
+		// @codeCoverageIgnoreStart
 		Kint::$aliases[] = 'dd';
 		Kint::dump(...$vars);
 		exit;
+		// @codeCoverageIgnoreEnd
 	}
 }
 
@@ -319,7 +321,7 @@ if (! function_exists('esc'))
 	{
 		if (is_array($data))
 		{
-			foreach ($data as $key => &$value)
+			foreach ($data as &$value)
 			{
 				$value = esc($value, $context);
 			}
@@ -404,7 +406,7 @@ if (! function_exists('force_https'))
 		{
 			return;
 		}
-
+		// @codeCoverageIgnoreStart
 		// If the session library is loaded, we should regenerate
 		// the session ID for safety sake.
 		if (class_exists('Session', false))
@@ -431,6 +433,7 @@ if (! function_exists('force_https'))
 		$response->sendHeaders();
 
 		exit();
+		// @codeCoverageIgnoreEnd
 	}
 }
 

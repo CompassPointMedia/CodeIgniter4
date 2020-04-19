@@ -194,7 +194,9 @@ class CodeIgniter
 
 		if (! CI_DEBUG)
 		{
+			// @codeCoverageIgnoreStart
 			\Kint::$enabled_mode = false;
+			// @codeCoverageIgnoreEnd
 		}
 	}
 
@@ -502,9 +504,11 @@ class CodeIgniter
 		}
 		else
 		{
+			// @codeCoverageIgnoreStart
 			header('HTTP/1.1 503 Service Unavailable.', true, 503);
 			echo 'The application environment is not set correctly.';
 			exit(1); // EXIT_ERROR
+			// @codeCoverageIgnoreEnd
 		}
 	}
 
@@ -755,9 +759,7 @@ class CodeIgniter
 	{
 		$this->totalTime = $this->benchmark->getElapsedTime('total_execution');
 
-		$output = str_replace('{elapsed_time}', $this->totalTime, $output);
-
-		return $output;
+		return str_replace('{elapsed_time}', $this->totalTime, $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -1001,7 +1003,7 @@ class CodeIgniter
 			}
 		}
 
-		throw PageNotFoundException::forPageNotFound($e->getMessage());
+		throw PageNotFoundException::forPageNotFound(ENVIRONMENT !== 'production' || is_cli() ? $e->getMessage() : '');
 	}
 
 	//--------------------------------------------------------------------
@@ -1139,7 +1141,9 @@ class CodeIgniter
 	 */
 	protected function callExit($code)
 	{
+		// @codeCoverageIgnoreStart
 		exit($code);
+		// @codeCoverageIgnoreEnd
 	}
 
 	//--------------------------------------------------------------------
