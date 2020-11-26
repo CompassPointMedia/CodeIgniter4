@@ -2,8 +2,9 @@
 
 namespace CodeIgniter\Validation;
 
-use Config\Database;
 use CodeIgniter\Test\CIDatabaseTestCase;
+use Config\Database;
+use CodeIgniter\Validation\Rules;
 
 class RulesTest extends CIDatabaseTestCase
 {
@@ -284,6 +285,66 @@ class RulesTest extends CIDatabaseTestCase
 				['foo' => 0.0],
 				true,
 			],
+			[
+				['foo' => 'permit_empty|required_with[bar]'],
+				['foo' => ''],
+				true,
+			],
+			[
+				['foo' => 'permit_empty|required_with[bar]'],
+				['foo' => 0],
+				true,
+			],
+			[
+				[
+					'foo' => 'permit_empty|required_with[bar]',
+				],
+				[
+					'foo' => 0.0,
+					'bar' => 1,
+				],
+				true,
+			],
+			[
+				[
+					'foo' => 'permit_empty|required_with[bar]',
+				],
+				[
+					'foo' => '',
+					'bar' => 1,
+				],
+				false,
+			],
+			[
+				['foo' => 'permit_empty|required_without[bar]'],
+				['foo' => ''],
+				false,
+			],
+			[
+				['foo' => 'permit_empty|required_without[bar]'],
+				['foo' => 0],
+				true,
+			],
+			[
+				[
+					'foo' => 'permit_empty|required_without[bar]',
+				],
+				[
+					'foo' => 0.0,
+					'bar' => 1,
+				],
+				true,
+			],
+			[
+				[
+					'foo' => 'permit_empty|required_without[bar]',
+				],
+				[
+					'foo' => '',
+					'bar' => 1,
+				],
+				true,
+			],
 		];
 	}
 
@@ -337,6 +398,42 @@ class RulesTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testMatcheNestedsTrue()
+	{
+		$data = [
+			'nested' => [
+				'foo' => 'match',
+				'bar' => 'match',
+			],
+		];
+
+		$this->validation->setRules([
+			'nested.foo' => 'matches[nested.bar]',
+		]);
+
+		$this->assertTrue($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testMatchesNestedFalse()
+	{
+		$data = [
+			'nested' => [
+				'foo' => 'match',
+				'bar' => 'nope',
+			],
+		];
+
+		$this->validation->setRules([
+			'nested.foo' => 'matches[nested.bar]',
+		]);
+
+		$this->assertFalse($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testDiffersNull()
 	{
 		$data = [
@@ -378,6 +475,42 @@ class RulesTest extends CIDatabaseTestCase
 
 		$this->validation->setRules([
 			'foo' => 'differs[bar]',
+		]);
+
+		$this->assertFalse($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testDiffersNestedTrue()
+	{
+		$data = [
+			'nested' => [
+				'foo' => 'match',
+				'bar' => 'nope',
+			],
+		];
+
+		$this->validation->setRules([
+			'nested.foo' => 'differs[nested.bar]',
+		]);
+
+		$this->assertTrue($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testDiffersNestedFalse()
+	{
+		$data = [
+			'nested' => [
+				'foo' => 'match',
+				'bar' => 'match',
+			],
+		];
+
+		$this->validation->setRules([
+			'nested.foo' => 'differs[nested.bar]',
 		]);
 
 		$this->assertFalse($this->validation->run($data));
@@ -605,6 +738,186 @@ class RulesTest extends CIDatabaseTestCase
 		]);
 
 		$this->assertTrue($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsUniqueIgnoresParamsPlaceholders()
+	{
+		$this->hasInDatabase('user', [
+			'name'    => 'Derek',
+			'email'   => 'derek@world.co.uk',
+			'country' => 'GB',
+		]);
+
+		$db  = Database::connect();
+		$row = $db->table('user')
+				  ->limit(1)
+				  ->get()
+				  ->getRow();
+
+		$data = [
+			'id'    => $row->id,
+			'email' => 'derek@world.co.uk',
+		];
+
+		$this->validation->setRules([
+			'email' => 'is_unique[user.email,id,{id}]',
+		]);
+
+		$this->assertTrue($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsUniqueByManualRun()
+	{
+		$db = Database::connect();
+		$db->table('user')
+				   ->insert([
+					   'name'    => 'Developer A',
+					   'email'   => 'deva@example.com',
+					   'country' => 'Elbonia',
+				   ]);
+
+		$this->assertFalse((new Rules())->is_unique('deva@example.com', 'user.email,id,{id}', []));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsNotUniqueFalse()
+	{
+		$db = Database::connect();
+		$db->table('user')
+		   ->insert([
+			   'name'    => 'Derek Travis',
+			   'email'   => 'derek@world.com',
+			   'country' => 'Elbonia',
+		   ]);
+
+		$data = [
+			'email' => 'derek1@world.com',
+		];
+
+		$this->validation->setRules([
+			'email' => 'is_not_unique[user.email]',
+		]);
+
+		$this->assertFalse($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsNotUniqueTrue()
+	{
+		$db = Database::connect();
+		$db->table('user')
+		   ->insert([
+			   'name'    => 'Derek Travis',
+			   'email'   => 'derek@world.com',
+			   'country' => 'Elbonia',
+		   ]);
+
+		$data = [
+			'email' => 'derek@world.com',
+		];
+
+		$this->validation->setRules([
+			'email' => 'is_not_unique[user.email]',
+		]);
+
+		$this->assertTrue($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsNotUniqueIgnoresParams()
+	{
+		$db   = Database::connect();
+		$user = $db->table('user')
+				   ->insert([
+					   'name'    => 'Developer A',
+					   'email'   => 'deva@example.com',
+					   'country' => 'Elbonia',
+				   ]);
+		$row  = $db->table('user')
+				   ->limit(1)
+				   ->get()
+				   ->getRow();
+
+		$data = [
+			'email' => 'derek@world.co.uk',
+		];
+
+		$this->validation->setRules([
+			'email' => "is_not_unique[user.email,id,{$row->id}]",
+		]);
+
+		$this->assertFalse($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsNotUniqueIgnoresParamsPlaceholders()
+	{
+		$this->hasInDatabase('user', [
+			'name'    => 'Derek',
+			'email'   => 'derek@world.co.uk',
+			'country' => 'GB',
+		]);
+
+		$db  = Database::connect();
+		$row = $db->table('user')
+				  ->limit(1)
+				  ->get()
+				  ->getRow();
+
+		$data = [
+			'id'    => $row->id,
+			'email' => 'derek@world.co.uk',
+		];
+
+		$this->validation->setRules([
+			'email' => 'is_not_unique[user.email,id,{id}]',
+		]);
+
+		$this->assertTrue($this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @group DatabaseLive
+	 */
+	public function testIsNotUniqueByManualRun()
+	{
+		$db = Database::connect();
+		$db->table('user')
+				   ->insert([
+					   'name'    => 'Developer A',
+					   'email'   => 'deva@example.com',
+					   'country' => 'Elbonia',
+				   ]);
+
+		$this->assertTrue((new Rules())->is_not_unique('deva@example.com', 'user.email,id,{id}', []));
 	}
 
 	//--------------------------------------------------------------------
@@ -1078,8 +1391,9 @@ class RulesTest extends CIDatabaseTestCase
 	/**
 	 * @dataProvider inListProvider
 	 *
-	 * @param $str
-	 * @param $expected
+	 * @param string  $first
+	 * @param string  $second
+	 * @param boolean $expected
 	 */
 	public function testInList($first, $second, $expected)
 	{
@@ -1089,6 +1403,30 @@ class RulesTest extends CIDatabaseTestCase
 
 		$this->validation->setRules([
 			'foo' => "in_list[{$second}]",
+		]);
+
+		$this->assertEquals($expected, $this->validation->run($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @dataProvider inListProvider
+	 *
+	 * @param string  $first
+	 * @param string  $second
+	 * @param boolean $expected
+	 */
+	public function testNotInList($first, $second, $expected)
+	{
+		$expected = ! $expected;
+
+		$data = [
+			'foo' => $first,
+		];
+
+		$this->validation->setRules([
+			'foo' => "not_in_list[{$second}]",
 		]);
 
 		$this->assertEquals($expected, $this->validation->run($data));

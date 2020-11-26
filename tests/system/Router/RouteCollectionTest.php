@@ -308,6 +308,53 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testGroupingWorksWithEmptyStringPrefix()
+	{
+		$routes = $this->getCollector();
+
+		$routes->group(
+				'', function ($routes) {
+					$routes->add('users/list', '\Users::list');
+				}
+		);
+
+		$expected = [
+			'users/list' => '\Users::list',
+		];
+
+		$this->assertEquals($expected, $routes->getRoutes());
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testNestedGroupingWorksWithEmptyPrefix()
+	{
+		$routes = $this->getCollector();
+
+		$routes->add('verify/begin', '\VerifyController::begin');
+
+		$routes->group('admin', function ($routes) {
+			$routes->group(
+				'', function ($routes) {
+					$routes->add('users/list', '\Users::list');
+					
+					$routes->group('delegate', function ($routes) {
+						$routes->add('foo', '\Users::foo');
+					});
+			});
+		});
+
+		$expected = [
+			'verify/begin'       => '\VerifyController::begin',
+			'admin/users/list'   => '\Users::list',
+			'admin/delegate/foo' => '\Users::foo'
+		];
+
+		$this->assertEquals($expected, $routes->getRoutes());
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testHostnameOption()
 	{
 		$_SERVER['HTTP_HOST'] = 'example.com';
@@ -775,6 +822,19 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testReverseRoutingWithLocaleAndFindsSimpleMatch()
+	{
+		$routes = $this->getCollector();
+
+		$routes->add('{locale}/path/(:any)/to/(:num)', 'myController::goto/$1/$2');
+
+		$match = $routes->reverseRoute('myController::goto', 'string', 13);
+
+		$this->assertEquals('/en/path/string/to/13', $match);
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testReverseRoutingReturnsFalseWithBadParamCount()
 	{
 		$routes = $this->getCollector();
@@ -830,6 +890,17 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testNamedRoutesWithLocale()
+	{
+		$routes = $this->getCollector();
+
+		$routes->add('{locale}/users', 'Users::index', ['as' => 'namedRoute']);
+
+		$this->assertEquals('/en/users', $routes->reverseRoute('namedRoute'));
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testNamedRoutesFillInParams()
 	{
 		$routes = $this->getCollector();
@@ -839,6 +910,19 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 		$match = $routes->reverseRoute('namedRoute', 'string', 13);
 
 		$this->assertEquals('/path/string/to/13', $match);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testNamedRoutesWithLocaleAndFillInParams()
+	{
+		$routes = $this->getCollector();
+
+		$routes->add('{locale}/path/(:any)/to/(:num)', 'myController::goto/$1/$2', ['as' => 'namedRoute']);
+
+		$match = $routes->reverseRoute('namedRoute', 'string', 13);
+
+		$this->assertEquals('/en/path/string/to/13', $match);
 	}
 
 	//--------------------------------------------------------------------
@@ -871,6 +955,53 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/642
+	 */
+	public function testNamedRoutesWithLocaleAndWithSameURIDifferentMethods()
+	{
+		$routes = $this->getCollector();
+
+		$routes->get('{locale}/user/insert', 'myController::goto/$1/$2', ['as' => 'namedRoute1']);
+		$routes->post(
+			'{locale}/user/insert',
+			function () {
+			},
+			['as' => 'namedRoute2']
+		);
+		$routes->put(
+			'{locale}/user/insert',
+			function () {
+			},
+			['as' => 'namedRoute3']
+		);
+
+		$match1 = $routes->reverseRoute('namedRoute1');
+		$match2 = $routes->reverseRoute('namedRoute2');
+		$match3 = $routes->reverseRoute('namedRoute3');
+
+		$this->assertEquals('/en/user/insert', $match1);
+		$this->assertEquals('/en/user/insert', $match2);
+		$this->assertEquals('/en/user/insert', $match3);
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3048
+	 */
+	public function testNamedRoutesWithPipesInRegex()
+	{
+		$routes = $this->getCollector();
+
+		$routes->get('/system/(this|that)', 'myController::system/$1', ['as' => 'pipedRoute']);
+
+		$this->assertEquals('/system/this', $routes->reverseRoute('pipedRoute', 'this'));
+		$this->assertEquals('/system/that', $routes->reverseRoute('pipedRoute', 'that'));
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testReverseRouteMatching()
 	{
 		$routes = $this->getCollector();
@@ -882,14 +1013,30 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 		$this->assertEquals('/test/1/2', $match);
 	}
 
+	//--------------------------------------------------------------------
+
+	public function testReverseRouteMatchingWithLocale()
+	{
+		$routes = $this->getCollector();
+
+		$routes->get('{locale}/test/(:segment)/(:segment)', 'TestController::test/$1/$2', ['as' => 'testRouter']);
+
+		$match = $routes->reverseRoute('testRouter', 1, 2);
+
+		$this->assertEquals('/en/test/1/2', $match);
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testAddRedirect()
 	{
 		$routes = $this->getCollector();
 
-		$routes->addRedirect('users', 'Users::index', 307);
+		//The second parameter is either the new URI to redirect to, or the name of a named route.
+		$routes->addRedirect('users', 'users/index', 307);
 
 		$expected = [
-			'users' => '\Users::index',
+			'users' => 'users/index',
 		];
 
 		$this->assertEquals($expected, $routes->getRoutes());
@@ -1144,6 +1291,48 @@ class RouteCollectionTest extends \CodeIgniter\Test\CIUnitTestCase
 		$options = $routes->getRoutesOptions('administrator');
 
 		$this->assertEquals($options, ['as' => 'admin', 'foo' => 'baz']);
+	}
+
+	public function testRoutesOptionsForDifferentVerbs()
+	{
+		$routes = $this->getCollector();
+
+		// options need to be declared separately, to not confuse PHPCBF
+		$options1 = [
+			'as'  => 'admin1',
+			'foo' => 'baz1',
+		];
+		$options2 = [
+			'as'  => 'admin2',
+			'foo' => 'baz2',
+		];
+		$options3 = [
+			'bar' => 'baz',
+		];
+		$routes->get(
+				'administrator', function () {
+				}, $options1
+		);
+		$routes->post(
+				'administrator', function () {
+				}, $options2
+		);
+		$routes->add(
+				'administrator', function () {
+				}, $options3
+		);
+
+		$options = $routes->getRoutesOptions('administrator');
+
+		$this->assertEquals($options, ['as' => 'admin1', 'foo' => 'baz1', 'bar' => 'baz']);
+
+		$options = $routes->setHTTPVerb('post')->getRoutesOptions('administrator');
+
+		$this->assertEquals($options, ['as' => 'admin2', 'foo' => 'baz2', 'bar' => 'baz']);
+
+		$options = $routes->setHTTPVerb('get')->getRoutesOptions('administrator', 'post');
+
+		$this->assertEquals($options, ['as' => 'admin2', 'foo' => 'baz2', 'bar' => 'baz']);
 	}
 
 	public function testRouteGroupWithFilterSimple()

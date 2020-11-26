@@ -1,11 +1,11 @@
 <?php namespace CodeIgniter\Validation;
 
-use CodeIgniter\Validation\Exceptions\ValidationException;
-use Config\Services;
-use Config\App;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\URI;
 use CodeIgniter\HTTP\UserAgent;
+use CodeIgniter\Validation\Exceptions\ValidationException;
+use Config\App;
+use Config\Services;
 
 class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 {
@@ -306,6 +306,20 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testRunGroupWithCustomErrorMessage()
+	{
+		$this->validation->reset();
+		$this->validation->run([
+			'username' => 'codeigniter',
+		], 'login');
+
+		$this->assertEquals([
+			'password' => 'custom password required error msg.',
+		], $this->validation->getErrors());
+	}
+
+	//--------------------------------------------------------------------
+
 	/**
 	 * @dataProvider rulesSetupProvider
 	 */
@@ -427,7 +441,7 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 		];
 
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), $rawstring, new UserAgent());
 		$request->setMethod('patch');
@@ -439,6 +453,39 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 				->run($data);
 
 		$this->assertEquals([], $this->validation->getErrors());
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testJsonInput()
+	{
+		$data = [
+			'username' => 'admin001',
+			'role'     => 'administrator',
+			'usepass'  => 0,
+		];
+		$json = json_encode($data);
+
+		$_SERVER['CONTENT_TYPE'] = 'application/json';
+
+		$config          = new App();
+		$config->baseURL = 'http://example.com/';
+
+		$request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+		$request->setMethod('patch');
+
+		$rules     = [
+			'role' => 'required|min_length[5]',
+		];
+		$validated = $this->validation
+			->withRequest($request)
+			->setRules($rules)
+			->run();
+
+		$this->assertTrue($validated);
+		$this->assertEquals([], $this->validation->getErrors());
+
+		unset($_SERVER['CONTENT_TYPE']);
 	}
 
 	//--------------------------------------------------------------------
@@ -652,7 +699,7 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 	public function testRulesForArrayField($body, $rules, $results)
 	{
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), http_build_query($body), new UserAgent());
 		$request->setMethod('post');
@@ -726,7 +773,7 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 	public function testRulesForSingleRuleWithAsteriskWillReturnNoError()
 	{
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$_REQUEST = [
 			'id_user'   => [
@@ -757,7 +804,7 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 	public function testRulesForSingleRuleWithAsteriskWillReturnError()
 	{
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$_REQUEST = [
 			'id_user'   => [
@@ -791,7 +838,7 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 	public function testRulesForSingleRuleWithSingleValue()
 	{
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$_REQUEST = [
 			'id_user' => 'gh',
@@ -809,6 +856,103 @@ class ValidationTest extends \CodeIgniter\Test\CIUnitTestCase
 		$this->assertEquals([
 			'id_user' => 'The id_user field must contain only numbers.',
 		], $this->validation->getErrors());
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testTranslatedLabel()
+	{
+		$rules = [
+			'foo' => [
+				'label' => 'Foo.bar',
+				'rules' => 'min_length[10]',
+			],
+		];
+
+		$this->validation->setRules($rules, []);
+
+		$this->validation->run(['foo' => 'abc']);
+
+		$this->assertEquals('The Foo Bar Translated field must be at least 10 characters in length.', $this->validation->getError('foo'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testTranslatedLabelIsMissing()
+	{
+		$rules = [
+			'foo' => [
+				'label' => 'Foo.bar.is.missing',
+				'rules' => 'min_length[10]',
+			],
+		];
+
+		$this->validation->setRules($rules, []);
+
+		$this->validation->run(['foo' => 'abc']);
+
+		$this->assertEquals('The Foo.bar.is.missing field must be at least 10 characters in length.', $this->validation->getError('foo'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testTranslatedLabelWithCustomErrorMessage()
+	{
+		$rules = [
+			'foo' => [
+				'label'  => 'Foo.bar',
+				'rules'  => 'min_length[10]',
+				'errors' => [
+					'min_length' => 'Foo.bar.min_length1',
+				],
+			],
+		];
+
+		$this->validation->setRules($rules, []);
+
+		$this->validation->run(['foo' => 'abc']);
+
+		$this->assertEquals('The Foo Bar Translated field is very short.', $this->validation->getError('foo'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testTranslatedLabelTagReplacement()
+	{
+		// data
+		$data = [
+			'Username' => 'Pizza',
+		];
+
+		// rules
+		$this->validation->setRules([
+			'Username' => [
+				'label' => 'Foo.bar',
+				'rules' => 'min_length[6]',
+			],
+		], [
+			'Username' => [
+				'min_length' => 'Foo.bar.min_length2',
+			],
+		]);
+
+		// run validation
+		$this->validation->run($data);
+
+		// $errors should contain an associative array
+		$errors = $this->validation->getErrors();
+
+		// if "Username" doesn't exist in errors
+		if (! isset($errors['Username']))
+		{
+			$this->fail('Unable to find "Username"');
+		}
+
+		// expected error message
+		$expected = 'Supplied value (Pizza) for Foo Bar Translated must have at least 6 characters.';
+
+		// check if they are the same!
+		$this->assertEquals($expected, $errors['Username']);
 	}
 
 	//--------------------------------------------------------------------

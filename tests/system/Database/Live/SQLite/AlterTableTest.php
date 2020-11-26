@@ -1,7 +1,7 @@
 <?php namespace CodeIgniter\Database\Live\SQLite;
 
-use CodeIgniter\Test\CIDatabaseTestCase;
 use CodeIgniter\Database\SQLite3\Table;
+use CodeIgniter\Test\CIDatabaseTestCase;
 use Config\Database;
 
 /**
@@ -32,7 +32,7 @@ class AlterTableTest extends CIDatabaseTestCase
 
 		$config = [
 			'DBDriver' => 'SQLite3',
-			'database' => ':memory:',
+			'database' => 'database.db',
 		];
 
 		$this->db    = db_connect($config);

@@ -2,12 +2,12 @@
 
 namespace CodeIgniter\HTTP;
 
-use Config\App;
 use CodeIgniter\Config\Config;
 use CodeIgniter\Config\Services;
-use CodeIgniter\Validation\Validation;
 use CodeIgniter\Router\RouteCollection;
 use CodeIgniter\Test\Mock\MockIncomingRequest;
+use CodeIgniter\Validation\Validation;
+use Config\App;
 
 class RedirectResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 {
@@ -26,7 +26,7 @@ class RedirectResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 
 		$this->config          = new App();
-		$this->config->baseURL = 'http://example.com';
+		$this->config->baseURL = 'http://example.com/';
 
 		$this->routes = new RouteCollection(Services::locator(), new \Config\Modules());
 		Services::injectMock('routes', $this->routes);
@@ -212,5 +212,69 @@ class RedirectResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 		$this->assertEquals('http://example.com/test/index.php/exampleRoute', $response->getHeaderLine('Location'));
 
 		Config::reset();
+	}
+
+	public function testWithCookies()
+	{
+		$_SESSION = [];
+
+		$baseResponse = service('response');
+		$baseResponse->setCookie('foo', 'bar');
+
+		$response = new RedirectResponse(new App());
+		$this->assertFalse($response->hasCookie('foo', 'bar'));
+
+		$response = $response->withCookies();
+
+		$this->assertTrue($response->hasCookie('foo', 'bar'));
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState  disabled
+	 */
+	public function testWithCookiesWithEmptyCookies()
+	{
+		$_SESSION = [];
+
+		$response = new RedirectResponse(new App());
+		$response = $response->withCookies();
+
+		$this->assertEmpty($response->getCookies());
+	}
+
+	public function testWithHeaders()
+	{
+		$_SESSION = [];
+
+		$baseResponse = service('response');
+		$baseResponse->setHeader('foo', 'bar');
+
+		$response = new RedirectResponse(new App());
+		$this->assertFalse($response->hasHeader('foo'));
+
+		$response = $response->withHeaders();
+
+		foreach ($baseResponse->getHeaders() as $name => $header)
+		{
+			$this->assertTrue($response->hasHeader($name));
+			$this->assertEquals($header->getValue(), $response->getHeader($name)->getValue());
+		}
+	}
+
+	public function testWithHeadersWithEmptyHeaders()
+	{
+		$_SESSION = [];
+
+		$baseResponse = service('response');
+		foreach ($baseResponse->getHeaders() as $key => $val)
+		{
+			$baseResponse->removeHeader($key);
+		}
+
+		$response = new RedirectResponse(new App());
+		$response = $response->withHeaders();
+
+		$this->assertEmpty($baseResponse->getHeaders());
 	}
 }

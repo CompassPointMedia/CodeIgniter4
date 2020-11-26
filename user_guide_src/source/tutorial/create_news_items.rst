@@ -21,7 +21,8 @@ the slug from our title in the model. Create a new view at
 
     <?= \Config\Services::validation()->listErrors(); ?>
 
-    <form action="/news/create">
+    <form action="/news/create" method="post">
+        <?= csrf_field() ?>
 
         <label for="title">Title</label>
         <input type="input" name="title" /><br />
@@ -33,9 +34,10 @@ the slug from our title in the model. Create a new view at
 
     </form>
 
-There is only one thing here that probably look unfamiliar to you: the
-``\Config\Services::validation()->listErrors()`` function. It is used to report
-errors related to form validation.
+There are probably only two things here that look unfamiliar. The
+``\Config\Services::validation()->listErrors()`` function is used to report
+errors related to form validation. The ``csrf_field()`` function creates
+a hidden input with a CSRF token that helps protect against some common attacks.
 
 Go back to your ``News`` controller. You're going to do two things here,
 check whether the form was submitted and whether the submitted data
@@ -48,29 +50,31 @@ validation <../libraries/validation>` library to do this.
     {
         $model = new NewsModel();
 
-        if (! $this->validate([
-            'title' => 'required|min_length[3]|max_length[255]',
-            'body'  => 'required'
-        ]))
+        if ($this->request->getMethod() === 'post' && $this->validate([
+                'title' => 'required|min_length[3]|max_length[255]',
+                'body'  => 'required'
+            ]))
+        {
+            $model->save([
+                'title' => $this->request->getPost('title'),
+                'slug'  => url_title($this->request->getPost('title'), '-', TRUE),
+                'body'  => $this->request->getPost('body'),
+            ]);
+
+            echo view('news/success');
+            
+        }
+        else
         {
             echo view('templates/header', ['title' => 'Create a news item']);
             echo view('news/create');
             echo view('templates/footer');
         }
-        else
-        {
-            $model->save([
-                'title' => $this->request->getVar('title'),
-                'slug'  => url_title($this->request->getVar('title')),
-                'body'  => $this->request->getVar('body'),
-            ]);
-
-            echo view('news/success');
-        }
     }
 
 The code above adds a lot of functionality. First we load the NewsModel.
-After that, the Controller-provided helper function is used to validate
+After that, we check if we deal with the ``POST`` request and then
+the Controller-provided helper function is used to validate
 the $_POST fields. In this case, the title and text fields are required.
 
 CodeIgniter has a powerful validation library as demonstrated

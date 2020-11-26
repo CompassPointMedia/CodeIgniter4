@@ -3,7 +3,6 @@ namespace Tests\Support\Controllers;
 
 use CodeIgniter\API\ResponseTrait;
 use CodeIgniter\Controller;
-use CodeIgniter\HTTP\Exceptions\HTTPException;
 
 /**
  * This is a testing only controller, intended to blow up in multiple
@@ -52,7 +51,7 @@ class Popcorn extends Controller
 
 	public function canyon()
 	{
-		echo 'Hello-o-o';
+		echo 'Hello-o-o ' . $this->request->getGet('foo');
 	}
 
 	public function cat()
@@ -74,4 +73,8 @@ class Popcorn extends Controller
 		return redirect()->route('testing-index');
 	}
 
+	public function echoJson()
+	{
+		return $this->response->setJSON($this->request->getJSON());
+	}
 }

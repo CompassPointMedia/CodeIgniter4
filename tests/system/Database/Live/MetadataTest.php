@@ -1,4 +1,6 @@
-<?php namespace CodeIgniter\Database\Live;
+<?php
+
+namespace CodeIgniter\Database\Live;
 
 use CodeIgniter\Test\CIDatabaseTestCase;
 
@@ -7,9 +9,9 @@ use CodeIgniter\Test\CIDatabaseTestCase;
  */
 class MetadataTest extends CIDatabaseTestCase
 {
-	protected $refresh = true;
 
-	protected $seed = 'Tests\Support\Database\Seeds\CITestSeeder';
+	protected $refresh = true;
+	protected $seed    = 'Tests\Support\Database\Seeds\CITestSeeder';
 
 	/**
 	 * Array of expected tables.
@@ -23,20 +25,23 @@ class MetadataTest extends CIDatabaseTestCase
 		parent::setUp();
 
 		// Prepare the array of expected tables once
-		$prefix = $this->db->getPrefix();
+		$prefix               = $this->db->getPrefix();
 		$this->expectedTables = [
 			$prefix . 'migrations',
 			$prefix . 'user',
 			$prefix . 'job',
 			$prefix . 'misc',
+			$prefix . 'type_test',
 			$prefix . 'empty',
-			$prefix . 'secondary'
+			$prefix . 'secondary',
+			$prefix . 'stringifypkey',
+			$prefix . 'without_auto_increment',
 		];
 	}
 
 	public function testListTables()
 	{
-		$result = $this->db->listTables();
+		$result = $this->db->listTables(true);
 
 		$this->assertEquals($this->expectedTables, array_values($result));
 	}
@@ -62,8 +67,14 @@ class MetadataTest extends CIDatabaseTestCase
 
 		// Create a table with the new prefix
 		$fields = [
-			'name'       => ['type' => 'varchar', 'constraint' => 31],
-			'created_at' => ['type' => 'datetime', 'null' => true],
+			'name'       => [
+				'type'       => 'varchar',
+				'constraint' => 31,
+			],
+			'created_at' => [
+				'type' => 'datetime',
+				'null' => true,
+			],
 		];
 		$this->forge->addField($fields);
 		$this->forge->createTable('widgets');
@@ -81,5 +92,4 @@ class MetadataTest extends CIDatabaseTestCase
 	}
 
 	//--------------------------------------------------------------------
-
 }

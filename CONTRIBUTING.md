@@ -3,11 +3,11 @@
 
 ## Contributions
 
-We expect all contributions to conform to our [style guide](https://github.com/codeigniter4/CodeIgniter4/blob/develop/contributing/styleguide.rst), be commented (inside the PHP source files), 
-be documented (in the [user guide](https://codeigniter4.github.io/userguide/)), and unit tested (in the [test folder](https://github.com/codeigniter4/CodeIgniter4/tree/develop/tests)). 
+We expect all contributions to conform to our [style guide](https://github.com/codeigniter4/CodeIgniter4/blob/develop/contributing/styleguide.rst), be commented (inside the PHP source files),
+be documented (in the [user guide](https://codeigniter4.github.io/userguide/)), and unit tested (in the [test folder](https://github.com/codeigniter4/CodeIgniter4/tree/develop/tests)).
 There is a [Contributing to CodeIgniter](./contributing/README.rst) section in the repository which describes the contribution process; this page is an overview.
 
-Note, we expect all code changes or bug-fixes to be accompanied by one or more tests added to our test suite to prove the code works. If pull requests are not accompanied by relevant tests, they will likely be closed. Since we are a team of volunteers, we don't have any more time to work on the framework than you do. Please make it as painless for your contributions to be included as possible. If you need help with getting tests running on your local machines, ask for help on the forums. We would be happy to help out. 
+Note, we expect all code changes or bug-fixes to be accompanied by one or more tests added to our test suite to prove the code works. If pull requests are not accompanied by relevant tests, they will likely be closed. Since we are a team of volunteers, we don't have any more time to work on the framework than you do. Please make it as painless for your contributions to be included as possible. If you need help with getting tests running on your local machines, ask for help on the forums. We would be happy to help out.
 
 The [Open Source Guide](https://opensource.guide/) is a good first read for those new to contributing to open source!
 ## Issues
@@ -42,18 +42,18 @@ CodeIgniter4 requires [PHP 7.2](https://php.net/releases/7_2_0.php).
 
 ### Branching
 
-CodeIgniter4 uses the [Git-Flow](http://nvie.com/posts/a-successful-git-branching-model/) branching model which requires all 
-Pull Requests to be sent to the "develop" branch; this is where the next planned version will be developed. 
-The "master" branch will always contain the latest stable version and is kept clean so a "hotfix" (e.g. an 
-emergency security patch) can be applied to the "master" branch to create a new version, without worrying 
-about other features holding it up. For this reason, all commits need to be made to the "develop" branch, 
-and any sent to the "master" branch will be closed automatically. If you have multiple changes to submit, 
+CodeIgniter4 uses the [Git-Flow](http://nvie.com/posts/a-successful-git-branching-model/) branching model which requires all
+Pull Requests to be sent to the "develop" branch; this is where the next planned version will be developed.
+The "master" branch will always contain the latest stable version and is kept clean so a "hotfix" (e.g. an
+emergency security patch) can be applied to the "master" branch to create a new version, without worrying
+about other features holding it up. For this reason, all commits need to be made to the "develop" branch,
+and any sent to the "master" branch will be closed automatically. If you have multiple changes to submit,
 please place all changes into their own branch on your fork.
 
-**One thing at a time:** A pull request should only contain one change. That does not mean only one commit, 
-but one change - however many commits it took. The reason for this is that if you change X and Y, 
-but send a pull request for both at the same time, we might really want X but disagree with Y, 
-meaning we cannot merge the request. Using the Git-Flow branching model you can create new 
+**One thing at a time:** A pull request should only contain one change. That does not mean only one commit,
+but one change - however many commits it took. The reason for this is that if you change X and Y,
+but send a pull request for both at the same time, we might really want X but disagree with Y,
+meaning we cannot merge the request. Using the Git-Flow branching model you can create new
 branches for both of these features and send two requests.
 
 A reminder: **please use separate branches for each of your PRs** - it will make it easier for you to keep changes separate from
@@ -62,6 +62,15 @@ each other and from whatever else you are doing with your repository!
 ### Signing
 
 You must [GPG-sign](./contributing/signing.rst) your work, certifying that you either wrote the work or otherwise have the right to pass it on to an open-source project. This is *not* just a "signed-off-by" commit, but instead, a digitally signed one.
+
+### Breaking Changes
+
+In general, any change that would disrupt existing uses of the framework is considered a "breaking change" and will not be favorably considered. A few specific examples to pay attention to:
+
+1. New classes/properties/constants in `system` are acceptable, but anything in the `app` directory that will be used in `system` should be backwards-compatible.
+2. Any changes to non-private methods must be backwards-compatible with the original definition.
+3. Deleting non-private properties or methods without prior deprecation notices is frowned upon and will likely be closed.
+4. Deleting or renaming public classes and interfaces, as well as those not marked as `@internal`, without prior deprecation notices or not providing fallback solutions will also not be favorably considered.
 
 ## How-to Guide
 
@@ -74,8 +83,8 @@ The best way to contribute is to fork the CodeIgniter4 repository, and "clone" t
 5. Create a new [branch](https://help.github.com/en/articles/about-branches) in your project for each set of changes you want to make.
 6. Fix existing bugs on the [Issue tracker](https://github.com/codeigniter4/CodeIgniter4/issues) after confirming that no one else is working on them.
 7. [Commit](https://help.github.com/en/desktop/contributing-to-projects/committing-and-reviewing-changes-to-your-project) the changed files in your contribution branch.
-8. [Push](https://help.github.com/en/articles/pushing-to-a-remote) your contribution branch to your fork.
-9. Send a [pull request](http://help.github.com/send-pull-requests/).
+8. [Push](https://docs.github.com/en/github/using-git/pushing-commits-to-a-remote-repository) your contribution branch to your fork.
+9. Send a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork).
 
 The codebase maintainers will now be alerted to the submission and someone from the team will respond. If your change fails to meet the guidelines, it will be rejected or feedback will be provided to help you improve it.
 
@@ -92,3 +101,11 @@ If you are using the command-line, you can do the following to update your fork 
 3. `git push origin develop`
 
 Your fork is now up to date. This should be done regularly and, at the least, before you submit a pull request.
+
+## Translations Installation
+
+If you wish to contribute to the system message translations,
+then fork and clone the [translations repository](https://github.com/codeigniter4/translations)
+separately from the codebase.
+
+These are two independent repositories!

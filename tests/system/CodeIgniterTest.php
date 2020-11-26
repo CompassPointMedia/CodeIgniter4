@@ -1,9 +1,9 @@
 <?php namespace CodeIgniter;
 
-use Config\App;
-use CodeIgniter\Test\Mock\MockCodeIgniter;
-use CodeIgniter\Router\RouteCollection;
 use \CodeIgniter\Config\Services;
+use CodeIgniter\Router\RouteCollection;
+use CodeIgniter\Test\Mock\MockCodeIgniter;
+use Config\App;
 
 /**
  * @backupGlobals enabled
@@ -39,23 +39,6 @@ class CodeIgniterTest extends \CodeIgniter\Test\CIUnitTestCase
 		{
 			ob_end_clean();
 		}
-	}
-
-	//--------------------------------------------------------------------
-
-	public function testRunDefaultRoute()
-	{
-		$_SERVER['argv'] = [
-			'index.php',
-			'/',
-		];
-		$_SERVER['argc'] = 2;
-
-		ob_start();
-		$this->codeigniter->useSafeOutput(true)->run();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -247,7 +230,7 @@ class CodeIgniterTest extends \CodeIgniter\Test\CIUnitTestCase
 			'/',
 		];
 		$_SERVER['argc']            = 2;
-		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/2';
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/2.0';
 
 		ob_start();
 		$this->codeigniter->useSafeOutput(true)->run();
@@ -273,4 +256,178 @@ class CodeIgniterTest extends \CodeIgniter\Test\CIUnitTestCase
 
 		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
 	}
+
+	//--------------------------------------------------------------------
+
+	public function testRunForceSecure()
+	{
+		$_SERVER['argv'] = [
+			'index.php',
+			'/',
+		];
+		$_SERVER['argc'] = 2;
+
+		$config                            = new App();
+		$config->forceGlobalSecureRequests = true;
+		$codeigniter                       = new MockCodeIgniter($config);
+
+		$this->getPrivateMethodInvoker($codeigniter, 'getRequestObject')();
+		$this->getPrivateMethodInvoker($codeigniter, 'getResponseObject')();
+
+		$response = $this->getPrivateProperty($codeigniter, 'response');
+		$this->assertNull($response->getHeader('Location'));
+
+		ob_start();
+		$codeigniter->useSafeOutput(true)->run();
+		$output = ob_get_clean();
+
+		$this->assertEquals('https://example.com/', $response->getHeader('Location')->getValue());
+	}
+
+	public function testRunRedirectionWithNamed()
+	{
+		$_SERVER['argv']        = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']        = 2;
+		$_SERVER['REQUEST_URI'] = '/example';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->add('pages/named', function () {
+		}, ['as' => 'name']);
+		$routes->addRedirect('example', 'name');
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('http://example.com/pages/named', $response->getHeader('Location')->getValue());
+	}
+
+	public function testRunRedirectionWithURI()
+	{
+		$_SERVER['argv']        = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']        = 2;
+		$_SERVER['REQUEST_URI'] = '/example';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->add('pages/uri', function () {
+		});
+		$routes->addRedirect('example', 'pages/uri');
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('http://example.com/pages/uri', $response->getHeader('Location')->getValue());
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3041
+	 */
+	public function testRunRedirectionWithURINotSet()
+	{
+		$_SERVER['argv']        = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']        = 2;
+		$_SERVER['REQUEST_URI'] = '/example';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->addRedirect('example', 'pages/notset');
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('http://example.com/pages/notset', $response->getHeader('Location')->getValue());
+	}
+
+	public function testRunRedirectionWithHTTPCode303()
+	{
+		$_SERVER['argv']            = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']            = 2;
+		$_SERVER['REQUEST_URI']     = '/example';
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+		$_SERVER['REQUEST_METHOD']  = 'POST';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->addRedirect('example', 'pages/notset', 301);
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('303', $response->getStatusCode());
+	}
+
+	public function testRunRedirectionWithHTTPCode301()
+	{
+		$_SERVER['argv']            = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']            = 2;
+		$_SERVER['REQUEST_URI']     = '/example';
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+		$_SERVER['REQUEST_METHOD']  = 'GET';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->addRedirect('example', 'pages/notset', 301);
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('301', $response->getStatusCode());
+	}
+
+	/**
+	 * The method after all test, reset Servces:: config
+	 * Can't use static::tearDownAfterClass. This will cause a buffer exception
+	 * need improve
+	 */
+	public function testRunDefaultRoute()
+	{
+		$_SERVER['argv'] = [
+			'index.php',
+			'/',
+		];
+		$_SERVER['argc'] = 2;
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
+	}
+
 }
