@@ -10,9 +10,9 @@ helper methods to make testing every aspect of your application as painless as p
     :local:
     :depth: 2
 
-************
-System Setup
-************
+*************
+System Set Up
+*************
 
 Installing phpUnit
 ==================
@@ -61,14 +61,16 @@ Your ``phpunit.xml`` should exclude the ``system`` folder, as well as any ``vend
 The Test Class
 ==============
 
-In order to take advantage of the additional tools provided, your tests must extend ``\CIUnitTestCase``. All tests
+In order to take advantage of the additional tools provided, your tests must extend ``CIUnitTestCase``. All tests
 are expected to be located in the **tests/app** directory by default.
 
 To test a new library, **Foo**, you would create a new file at **tests/app/Libraries/FooTest.php**::
 
     <?php namespace App\Libraries;
 
-    class FooTest extends \CIUnitTestCase
+    use CodeIgniter\Test\CIUnitTestCase;
+
+    class FooTest extends CIUnitTestCase
     {
         public function testFooNotBar()
         {
@@ -80,7 +82,9 @@ To test one of your models, you might end up with something like this in ``tests
 
     <?php namespace App\Models;
 
-    class OneOfMyModelsTest extends \CIUnitTestCase
+    use CodeIgniter\Test\CIUnitTestCase;
+
+    class OneOfMyModelsTest extends CIUnitTestCase
     {
         public function testFooNotBar()
         {
@@ -95,7 +99,52 @@ have the correct namespace relative to ``App``.
 
 .. note:: Namespaces are not strictly required for test classes, but they are helpful to ensure no class names collide.
 
-When testing database results, you must use the `CIDatabaseTestClass </testing/database>`_ class.
+When testing database results, you must use the `CIDatabaseTestClass <database.html>`_ class.
+
+Staging
+-------
+
+Most tests require some preparation in order to run correctly. PHPUnit's ``TestCase`` provides four methods
+to help with staging and clean up::
+
+	public static function setUpBeforeClass(): void
+	public static function tearDownAfterClass(): void
+	public function setUp(): void
+	public function tearDown(): void
+
+The static methods run before and after the entire test case, whereas the local methods run
+between each test. If you implement any of these special functions make sure you run their
+parent as well so extended test cases do not interfere with staging::
+
+	public function setUp(): void
+	{
+		parent::setUp();
+		helper('text');
+	}
+
+In addition to these methods, ``CIUnitTestCase`` also comes with a convenience property for
+parameter-free methods you want run during set up and tear down::
+
+	protected $setUpMethods = [
+		'mockEmail',
+		'mockSession',
+	];
+	
+	protected $tearDownMethods = [];
+
+You can see by default these handle the mocking of intrusive services, but your class may override
+that or provide their own::
+
+	class OneOfMyModelsTest extends CIUnitTestCase
+	{
+		protected $tearDownMethods = [
+			'purgeRows',
+		];
+		
+		protected function purgeRows()
+		{
+			$this->model->purgeDeleted()
+		}
 
 Additional Assertions
 ---------------------
@@ -134,7 +183,7 @@ Ensure that a header or cookie was actually emitted::
 
     ob_start();
     $this->response->send();
-    $output = ob_get_clean(); // in case you want to check the adtual body
+    $output = ob_get_clean(); // in case you want to check the actual body
 
     $this->assertHeaderEmitted("Set-Cookie: foo=bar");
 
@@ -143,13 +192,13 @@ in PHPunit <https://phpunit.readthedocs.io/en/7.4/annotations.html#runinseparate
 
 **assertHeaderNotEmitted($header, $ignoreCase=false)**
 
-Ensure that a header or cookie was actually emitted::
+Ensure that a header or cookie was not emitted::
 
     $response->setCookie('foo', 'bar');
 
     ob_start();
     $this->response->send();
-    $output = ob_get_clean(); // in case you want to check the adtual body
+    $output = ob_get_clean(); // in case you want to check the actual body
 
     $this->assertHeaderNotEmitted("Set-Cookie: banana");
 
@@ -258,7 +307,25 @@ class exactly. The second parameter is the instance to replace it with.
 
 Removes all mocked classes from the Services class, bringing it back to its original state.
 
+.. note:: The ``Email`` and ``Session`` services are mocked by default to prevent intrusive testing behavior. To prevent these from mocking remove their method callback from the class property: ``$setUpMethods = ['mockEmail', 'mockSession'];``
 
+Mocking Factory Instances
+=========================
+
+Similar to Services, you may find yourself needing to supply a pre-configured class instance
+during testing that will be used with ``Factories``. Use the same ``injectMock()`` and ``reset()``
+static methods like **Services**, but they take an additional preceding parameter for the
+component name::
+
+    protected function setUp()
+    {
+    	parent::setUp();
+
+		$model = new MockUserModel();
+		Factories::injectMock('models', 'App\Models\UserModel', $model);
+	}
+		
+.. note:: All component Factories are reset by default between each test. Modify your test case's ``$setUpMethods`` if you need instances to persist.
 
 Stream Filters
 ==============

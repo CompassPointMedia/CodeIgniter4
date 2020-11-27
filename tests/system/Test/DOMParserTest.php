@@ -1,10 +1,10 @@
 <?php
 namespace CodeIgniter\Test;
 
-class DOMParserTest extends CIUnitTestCase
+class DOMParserTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -66,14 +66,25 @@ class DOMParserTest extends CIUnitTestCase
 		$this->assertEquals(['href' => 'http://example.com'], $selector['attr']);
 	}
 
-	public function testSeeText()
+	public function provideText()
+	{
+		return [
+			['Hello World'],
+			['Hellö Wörld'],
+		];
+	}
+
+	/**
+	 * @dataProvider provideText
+	 */
+	public function testSeeText($text)
 	{
 		$dom = new DOMParser();
 
-		$html = '<html><body><h1>Hello World</h1></body></html>';
+		$html = '<html><body><h1>' . $text . '</h1></body></html>';
 		$dom->withString($html);
 
-		$this->assertTrue($dom->see('Hello World'));
+		$this->assertTrue($dom->see($text));
 	}
 
 	public function testSeeHTML()
@@ -96,14 +107,17 @@ class DOMParserTest extends CIUnitTestCase
 		$this->assertFalse($dom->see('Hello Worlds'));
 	}
 
-	public function testSeeElement()
+	/**
+	 * @dataProvider provideText
+	 */
+	public function testSeeElement($text)
 	{
 		$dom = new DOMParser();
 
-		$html = '<html><body><h1>Hello World</h1></body></html>';
+		$html = '<html><body><h1> ' . $text . '</h1></body></html>';
 		$dom->withString($html);
 
-		$this->assertTrue($dom->see('Hello World', 'h1'));
+		$this->assertTrue($dom->see($text, 'h1'));
 	}
 
 	public function testSeeElementPartialText()

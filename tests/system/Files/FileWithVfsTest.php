@@ -2,7 +2,7 @@
 
 use org\bovigo\vfs\vfsStream;
 
-class FileWithVfsTest extends \CIUnitTestCase
+class FileWithVfsTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	// For VFS stuff
@@ -15,7 +15,7 @@ class FileWithVfsTest extends \CIUnitTestCase
 	 */
 	protected $file;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -26,7 +26,7 @@ class FileWithVfsTest extends \CIUnitTestCase
 		$this->file  = new File($this->start . 'able/apple.php');
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 
@@ -113,11 +113,10 @@ class FileWithVfsTest extends \CIUnitTestCase
 		$this->assertFalse($this->root->hasChild('able/apple.php'));
 	}
 
-	/**
-	 * @expectedException \Exception
-	 */
 	public function testMoveFailure()
 	{
+		$this->expectException('Exception');
+
 		$here = $this->root->url();
 
 		chmod($here, 400); // make a read-only folder

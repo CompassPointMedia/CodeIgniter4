@@ -1,16 +1,20 @@
-<?php namespace CodeIgniter\CLI;
+<?php
 
+namespace CodeIgniter\CLI;
+
+use CodeIgniter\CodeIgniter;
 use CodeIgniter\HTTP\CLIRequest;
-use Tests\Support\MockCodeIgniter;
-use Tests\Support\Config\MockCLIConfig;
+use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Filters\CITestStreamFilter;
+use CodeIgniter\Test\Mock\MockCLIConfig;
+use CodeIgniter\Test\Mock\MockCodeIgniter;
 
-class ConsoleTest extends \CIUnitTestCase
+class ConsoleTest extends CIUnitTestCase
 {
 
 	private $stream_filter;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -23,7 +27,7 @@ class ConsoleTest extends \CIUnitTestCase
 		// Set environment values that would otherwise stop the framework from functioning during tests.
 		if (! isset($_SERVER['app.baseURL']))
 		{
-			$_SERVER['app.baseURL'] = 'http://example.com';
+			$_SERVER['app.baseURL'] = 'http://example.com/';
 		}
 
 		$_SERVER['argv'] = [
@@ -36,7 +40,7 @@ class ConsoleTest extends \CIUnitTestCase
 		$this->app = new MockCodeIgniter(new MockCLIConfig());
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		stream_filter_remove($this->stream_filter);
 	}
@@ -52,7 +56,7 @@ class ConsoleTest extends \CIUnitTestCase
 		$console = new \CodeIgniter\CLI\Console($this->app);
 		$console->showHeader();
 		$result = CITestStreamFilter::$buffer;
-		$this->assertTrue(strpos($result, 'CodeIgniter CLI Tool') > 0);
+		$this->assertTrue(strpos($result, sprintf('CodeIgniter v%s Command Line Tool', CodeIgniter::CI_VERSION)) > 0);
 	}
 
 	public function testRun()
@@ -68,8 +72,8 @@ class ConsoleTest extends \CIUnitTestCase
 		ob_end_clean();
 
 		// make sure the result looks like a command list
-		$this->assertContains('Lists the available commands.', $result);
-		$this->assertContains('Displays basic usage information.', $result);
+		$this->assertStringContainsString('Lists the available commands.', $result);
+		$this->assertStringContainsString('Displays basic usage information.', $result);
 	}
 
 }

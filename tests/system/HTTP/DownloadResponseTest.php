@@ -1,15 +1,15 @@
 <?php
 namespace CodeIgniter\HTTP;
 
+use CodeIgniter\Exceptions\DownloadException;
 use CodeIgniter\Files\Exceptions\FileNotFoundException;
 use DateTime;
 use DateTimeZone;
-use CodeIgniter\Exceptions\DownloadException;
 
-class DownloadResponseTest extends \CIUnitTestCase
+class DownloadResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		if (isset($_SERVER['HTTP_USER_AGENT']))
 		{

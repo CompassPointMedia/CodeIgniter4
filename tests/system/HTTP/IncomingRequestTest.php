@@ -1,13 +1,13 @@
 <?php
 namespace CodeIgniter\HTTP;
 
-use Config\App;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use Config\App;
 
 /**
  * @backupGlobals enabled
  */
-class IncomingRequestTest extends \CIUnitTestCase
+class IncomingRequestTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -15,7 +15,7 @@ class IncomingRequestTest extends \CIUnitTestCase
 	 */
 	protected $request;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -176,7 +176,7 @@ class IncomingRequestTest extends \CIUnitTestCase
 			'es',
 		];
 		$config->defaultLocale    = 'es';
-		$config->baseURL          = 'http://example.com';
+		$config->baseURL          = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), null, new UserAgent());
 
@@ -192,7 +192,7 @@ class IncomingRequestTest extends \CIUnitTestCase
 			'es',
 		];
 		$config->defaultLocale    = 'es';
-		$config->baseURL          = 'http://example.com';
+		$config->baseURL          = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), null, new UserAgent());
 
@@ -202,22 +202,43 @@ class IncomingRequestTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/2774
+	 */
 	public function testNegotiatesLocale()
 	{
-		$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'es; q=1.0, en; q=0.5';
+		$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'fr-FR; q=1.0, en; q=0.5';
 
 		$config                   = new App();
 		$config->negotiateLocale  = true;
 		$config->supportedLocales = [
+			'fr',
 			'en',
-			'es',
 		];
-		$config->baseURL          = 'http://example.com';
+		$config->baseURL          = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), null, new UserAgent());
 
 		$this->assertEquals($config->defaultLocale, $request->getDefaultLocale());
-		$this->assertEquals('es', $request->getLocale());
+		$this->assertEquals('fr', $request->getLocale());
+	}
+
+	public function testNegotiatesLocaleOnlyBroad()
+	{
+		$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'fr; q=1.0, en; q=0.5';
+
+		$config                   = new App();
+		$config->negotiateLocale  = true;
+		$config->supportedLocales = [
+			'fr',
+			'en',
+		];
+		$config->baseURL          = 'http://example.com/';
+
+		$request = new IncomingRequest($config, new URI(), null, new UserAgent());
+
+		$this->assertEquals($config->defaultLocale, $request->getDefaultLocale());
+		$this->assertEquals('fr', $request->getLocale());
 	}
 
 	// The negotiation tests below are not intended to exercise the HTTP\Negotiate class -
@@ -270,7 +291,7 @@ class IncomingRequestTest extends \CIUnitTestCase
 		];
 
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), $json, new UserAgent());
 
@@ -288,7 +309,7 @@ class IncomingRequestTest extends \CIUnitTestCase
 		];
 
 		$config          = new App();
-		$config->baseURL = 'http://example.com';
+		$config->baseURL = 'http://example.com/';
 
 		$request = new IncomingRequest($config, new URI(), $rawstring, new UserAgent());
 
@@ -305,7 +326,7 @@ class IncomingRequestTest extends \CIUnitTestCase
 
 	public function testIsAJAX()
 	{
-		$_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
+		$this->request->appendHeader('X-Requested-With', 'XMLHttpRequest');
 		$this->assertTrue($this->request->isAJAX());
 	}
 
@@ -319,13 +340,13 @@ class IncomingRequestTest extends \CIUnitTestCase
 
 	public function testIsSecureFrontEnd()
 	{
-		$_SERVER['HTTP_FRONT_END_HTTPS'] = 'on';
+		$this->request->appendHeader('Front-End-Https', 'on');
 		$this->assertTrue($this->request->isSecure());
 	}
 
 	public function testIsSecureForwarded()
 	{
-		$_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
+		$this->request->appendHeader('X-Forwarded-Proto', 'https');
 		$this->assertTrue($this->request->isSecure());
 	}
 
@@ -365,6 +386,40 @@ class IncomingRequestTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testGetFileMultiple()
+	{
+		$_FILES = [
+			'userfile' => [
+				'name'     => [
+					'someFile.txt',
+					'someFile2.txt',
+				],
+				'type'     => [
+					'text/plain',
+					'text/plain',
+				],
+				'size'     => [
+					'124',
+					'125',
+				],
+				'tmp_name' => [
+					'/tmp/myTempFile.txt',
+					'/tmp/myTempFile2.txt',
+				],
+				'error'    => [
+					0,
+					0,
+				],
+			],
+		];
+
+		$gotit = $this->request->getFileMultiple('userfile');
+		$this->assertEquals(124, $gotit[0]->getSize());
+		$this->assertEquals(125, $gotit[1]->getSize());
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testGetFile()
 	{
 		$_FILES = [
@@ -389,4 +444,34 @@ class IncomingRequestTest extends \CIUnitTestCase
 		$this->assertEquals('wink', $this->request->getMethod());
 	}
 
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/2839
+	 */
+	public function testGetPostEmpty()
+	{
+		$_POST['TEST'] = 5;
+		$_GET['TEST']  = 3;
+		$this->assertEquals($_POST, $this->request->getPostGet());
+		$this->assertEquals($_GET, $this->request->getGetPost());
+	}
+
+	public function testWithFalseBody()
+	{
+		// Use `false` here to simulate file_get_contents returning a false value
+		$request = new IncomingRequest(new App(), new URI(), false, new UserAgent());
+
+		$this->assertTrue($request->getBody() !== false);
+		$this->assertTrue($request->getBody() === null);
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3020
+	 */
+	public function testGetPostIndexNotExists()
+	{
+		$_POST['TEST'] = 5;
+		$_GET['TEST']  = 3;
+		$this->assertNull($this->request->getPostGet('gc'));
+		$this->assertNull($this->request->getGetPost('gc'));
+	}
 }

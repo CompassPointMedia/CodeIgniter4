@@ -72,15 +72,18 @@ is an object-oriented representation of the HTTP request. It provides everything
 
 	use CodeIgniter\HTTP\IncomingRequest;
 
-	$request = new IncomingRequest(new \Config\App(), new \CodeIgniter\HTTP\URI());
+	$request = service('request');
 
 	// the URI being requested (i.e. /about)
 	$request->uri->getPath();
 
 	// Retrieve $_GET and $_POST variables
-	$request->getVar('foo');
 	$request->getGet('foo');
 	$request->getPost('foo');
+
+	// Retrieve from $_REQUEST which should include
+	// both $_GET and $_POST contents
+	$request->getVar('foo');
 
 	// Retrieve JSON from AJAX calls
 	$request->getJSON();
@@ -95,14 +98,16 @@ is an object-oriented representation of the HTTP request. It provides everything
 	$request->getMethod();  // GET, POST, PUT, etc
 
 The request class does a lot of work in the background for you, that you never need to worry about.
-The ``isAJAX()`` and ``isSecure()`` methods check several different methods to determine the correct answer.
+The `isAJAX()` and `isSecure()` methods check several different methods to determine the correct answer.
+
+.. note:: The ``isAJAX()`` method depends on the ``X-Requested-With`` header, which in some cases is not sent by default in XHR requests via JavaScript (i.e. fetch). See the :doc:`AJAX Requests </general/ajax>` section on how to avoid this problem.
 
 CodeIgniter also provides a :doc:`Response class </outgoing/response>` that is an object-oriented representation
 of the HTTP response. This gives you an easy and powerful way to construct your response to the client::
 
   use CodeIgniter\HTTP\Response;
 
-  $response = new Response();
+  $response = service('response');
 
   $response->setStatusCode(Response::HTTP_OK);
   $response->setBody($output);
@@ -110,6 +115,7 @@ of the HTTP response. This gives you an easy and powerful way to construct your 
   $response->noCache();
 
   // Sends the output to the browser
+  // This is typically handled by the framework
   $response->send();
 
 In addition, the Response class allows you to work the HTTP cache layer for the best performance.

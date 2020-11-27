@@ -2,8 +2,8 @@
 namespace CodeIgniter\RESTful;
 
 use CodeIgniter\Config\Services;
+use CodeIgniter\Test\Mock\MockCodeIgniter;
 use Config\App;
-use Tests\Support\MockCodeIgniter;
 
 /**
  * Exercise our core ResourcePresenter class.
@@ -14,7 +14,7 @@ use Tests\Support\MockCodeIgniter;
  * @runTestsInSeparateProcesses
  * @preserveGlobalState         disabled
  */
-class ResourcePresenterTest extends \CIUnitTestCase
+class ResourcePresenterTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -30,7 +30,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -47,7 +47,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter = new MockCodeIgniter($config);
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 
@@ -92,7 +92,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['show']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['show']), $output);
 	}
 
 	public function testResourceNew()
@@ -110,7 +110,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['new']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['new']), $output);
 	}
 
 	public function testResourceCreate()
@@ -128,7 +128,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['create']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['create']), $output);
 	}
 
 	public function testResourceRemove()
@@ -147,7 +147,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['remove']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['remove']), $output);
 	}
 
 	public function testResourceDelete()
@@ -166,7 +166,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['delete']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['delete']), $output);
 	}
 
 	public function testResourceEdit()
@@ -186,7 +186,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['edit']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['edit']), $output);
 	}
 
 	public function testResourceUpdate()
@@ -205,21 +205,21 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($this->routes);
 		$output = ob_get_clean();
 
-		$this->assertContains(lang('RESTful.notImplemented', ['update']), $output);
+		$this->assertStringContainsString(lang('RESTful.notImplemented', ['update']), $output);
 	}
 
 	//--------------------------------------------------------------------
 
 	public function testModel()
 	{
-		$resource = new \Tests\Support\RESTful\MockResourcePresenter();
+		$resource = new \CodeIgniter\Test\Mock\MockResourcePresenter();
 		$this->assertEmpty($resource->getModel());
 		$this->assertEmpty($resource->getModelName());
 	}
 
 	public function testModelBogus()
 	{
-		$resource = new \Tests\Support\RESTful\MockResourcePresenter();
+		$resource = new \CodeIgniter\Test\Mock\MockResourcePresenter();
 
 		$resource->setModel('Something');
 		$this->assertEmpty($resource->getModel());
@@ -228,7 +228,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 
 	public function testModelByName()
 	{
-		$resource = new \Tests\Support\RESTful\MockResourcePresenter();
+		$resource = new \CodeIgniter\Test\Mock\MockResourcePresenter();
 		$resource->setModel('\Tests\Support\Models\UserModel');
 		$this->assertInstanceOf('CodeIgniter\Model', $resource->getModel());
 		$this->assertEquals('\Tests\Support\Models\UserModel', $resource->getModelName());
@@ -236,7 +236,7 @@ class ResourcePresenterTest extends \CIUnitTestCase
 
 	public function testModelByObject()
 	{
-		$resource = new \Tests\Support\RESTful\MockResourcePresenter();
+		$resource = new \CodeIgniter\Test\Mock\MockResourcePresenter();
 		$model    = new \Tests\Support\Models\UserModel();
 		$resource->setModel($model);
 		$this->assertInstanceOf('CodeIgniter\Model', $resource->getModel());
@@ -245,4 +245,28 @@ class ResourcePresenterTest extends \CIUnitTestCase
 		$this->assertEquals('Tests\Support\Models\UserModel', $resource->getModelName());
 	}
 
+	public function testChangeSetModelByObject()
+	{
+		$resource = new \CodeIgniter\Test\Mock\MockResourcePresenter();
+		$resource->setModel('\Tests\Support\Models\UserModel');
+		$this->assertInstanceOf('CodeIgniter\Model', $resource->getModel());
+		$this->assertEquals('\Tests\Support\Models\UserModel', $resource->getModelName());
+
+		$model = new \Tests\Support\Models\EntityModel();
+		$resource->setModel($model);
+		$this->assertInstanceOf('CodeIgniter\Model', $resource->getModel());
+		$this->assertEquals('Tests\Support\Models\EntityModel', $resource->getModelName());
+	}
+
+	public function testChangeSetModelByName()
+	{
+		$resource = new \CodeIgniter\Test\Mock\MockResourcePresenter();
+		$resource->setModel('\Tests\Support\Models\UserModel');
+		$this->assertInstanceOf('CodeIgniter\Model', $resource->getModel());
+		$this->assertEquals('\Tests\Support\Models\UserModel', $resource->getModelName());
+
+		$resource->setModel('\Tests\Support\Models\EntityModel');
+		$this->assertInstanceOf('CodeIgniter\Model', $resource->getModel());
+		$this->assertEquals('\Tests\Support\Models\EntityModel', $resource->getModelName());
+	}
 }

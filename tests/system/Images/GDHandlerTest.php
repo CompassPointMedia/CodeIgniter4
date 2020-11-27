@@ -1,7 +1,7 @@
 <?php namespace CodeIgniter\Images;
 
-use CodeIgniter\Images\Exceptions\ImageException;
 use CodeIgniter\Config\Services;
+use CodeIgniter\Images\Exceptions\ImageException;
 use org\bovigo\vfs\vfsStream;
 
 /**
@@ -13,10 +13,10 @@ use org\bovigo\vfs\vfsStream;
  *
  * Was unable to test fontPath & related logic.
  */
-class GDHandlerTest extends \CIUnitTestCase
+class GDHandlerTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		if (! extension_loaded('gd'))
 		{
@@ -310,8 +310,14 @@ class GDHandlerTest extends \CIUnitTestCase
 
 	public function testImageCreation()
 	{
-		foreach (['gif', 'jpeg', 'png'] as $type)
+		foreach (['gif', 'jpeg', 'png', 'webp'] as $type)
 		{
+			if ($type === 'webp' && ! function_exists('imagecreatefromwebp'))
+			{
+				$this->expectException(ImageException::class);
+				$this->expectExceptionMessage('Your server does not support the GD function required to process this type of image.');
+			}
+
 			$this->handler->withFile($this->origin . 'ci-logo.' . $type);
 			$this->handler->text('vertical');
 			$this->assertEquals(155, $this->handler->getWidth());
@@ -321,14 +327,84 @@ class GDHandlerTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	public function testImageSave()
+	public function testImageCopy()
 	{
-		foreach (['gif', 'jpeg', 'png'] as $type)
+		foreach (['gif', 'jpeg', 'png', 'webp'] as $type)
 		{
+			if ($type === 'webp' && ! function_exists('imagecreatefromwebp'))
+			{
+				$this->expectException(ImageException::class);
+				$this->expectExceptionMessage('Your server does not support the GD function required to process this type of image.');
+			}
+
+			$this->handler->withFile($this->origin . 'ci-logo.' . $type);
+			$this->handler->save($this->start . 'work/ci-logo.' . $type);
+			$this->assertTrue($this->root->hasChild('work/ci-logo.' . $type));
+
+			$this->assertNotEquals(
+				file_get_contents($this->origin . 'ci-logo.' . $type),
+				$this->root->getChild('work/ci-logo.' . $type)->getContent()
+			);
+		}
+	}
+
+	public function testImageCopyWithNoTargetAndMaxQuality()
+	{
+		foreach (['gif', 'jpeg', 'png', 'webp'] as $type)
+		{
+			$this->handler->withFile($this->origin . 'ci-logo.' . $type);
+			$this->handler->save(null, 100);
+			$this->assertTrue(file_exists($this->origin . 'ci-logo.' . $type));
+
+			$this->assertEquals(
+				file_get_contents($this->origin . 'ci-logo.' . $type),
+				file_get_contents($this->origin . 'ci-logo.' . $type)
+			);
+		}
+	}
+
+	public function testImageCompressionGetResource()
+	{
+		foreach (['gif', 'jpeg', 'png', 'webp'] as $type)
+		{
+			if ($type === 'webp' && ! function_exists('imagecreatefromwebp'))
+			{
+				$this->expectException(ImageException::class);
+				$this->expectExceptionMessage('Your server does not support the GD function required to process this type of image.');
+			}
+
 			$this->handler->withFile($this->origin . 'ci-logo.' . $type);
 			$this->handler->getResource(); // make sure resource is loaded
 			$this->handler->save($this->start . 'work/ci-logo.' . $type);
 			$this->assertTrue($this->root->hasChild('work/ci-logo.' . $type));
+
+			$this->assertNotEquals(
+				file_get_contents($this->origin . 'ci-logo.' . $type),
+				$this->root->getChild('work/ci-logo.' . $type)->getContent()
+			);
+		}
+	}
+
+	public function testImageCompressionWithResource()
+	{
+		foreach (['gif', 'jpeg', 'png', 'webp'] as $type)
+		{
+			if ($type === 'webp' && ! function_exists('imagecreatefromwebp'))
+			{
+				$this->expectException(ImageException::class);
+				$this->expectExceptionMessage('Your server does not support the GD function required to process this type of image.');
+			}
+
+			$this->handler->withFile($this->origin . 'ci-logo.' . $type)
+				->withResource() // make sure resource is loaded
+				->save($this->start . 'work/ci-logo.' . $type);
+
+			$this->assertTrue($this->root->hasChild('work/ci-logo.' . $type));
+
+			$this->assertNotEquals(
+				file_get_contents($this->origin . 'ci-logo.' . $type),
+				$this->root->getChild('work/ci-logo.' . $type)->getContent()
+			);
 		}
 	}
 
@@ -339,6 +415,40 @@ class GDHandlerTest extends \CIUnitTestCase
 		$this->handler->convert(IMAGETYPE_PNG);
 		$this->handler->save($this->start . 'work/ci-logo.png');
 		$this->assertEquals(exif_imagetype($this->start . 'work/ci-logo.png'), IMAGETYPE_PNG);
+	}
+
+	public function testImageReorientLandscape()
+	{
+		for ($i = 0; $i <= 8; $i++)
+		{
+			$source = $this->origin . 'EXIFsamples/landscape_' . '' . $i . '.jpg';
+
+			$this->handler->withFile($source);
+			$this->handler->reorient();
+
+			$resource = $this->handler->getResource();
+			$point    = imagecolorat($resource, 0, 0);
+			$rgb      = imagecolorsforindex($resource, $point);
+
+			$this->assertEquals(['red' => 62, 'green' => 62, 'blue' => 62, 'alpha' => 0], $rgb);
+		}
+	}
+
+	public function testImageReorientPortrait()
+	{
+		for ($i = 0; $i <= 8; $i++)
+		{
+			$source = $this->origin . 'EXIFsamples/portrait_' . '' . $i . '.jpg';
+
+			$this->handler->withFile($source);
+			$this->handler->reorient();
+
+			$resource = $this->handler->getResource();
+			$point    = imagecolorat($resource, 0, 0);
+			$rgb      = imagecolorsforindex($resource, $point);
+
+			$this->assertEquals(['red' => 62, 'green' => 62, 'blue' => 62, 'alpha' => 0], $rgb);
+		}
 	}
 
 }

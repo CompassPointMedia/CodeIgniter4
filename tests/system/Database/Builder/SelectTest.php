@@ -2,15 +2,15 @@
 
 use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\Exceptions\DataException;
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class SelectTest extends \CIUnitTestCase
+class SelectTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $db;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

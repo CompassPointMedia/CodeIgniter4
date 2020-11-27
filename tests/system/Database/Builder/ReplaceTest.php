@@ -1,14 +1,14 @@
 <?php namespace Builder;
 
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class ReplaceTest extends \CIUnitTestCase
+class ReplaceTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $db;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -29,7 +29,7 @@ class ReplaceTest extends \CIUnitTestCase
 			'date'  => 'My date',
 		];
 
-		$this->assertSame($expected, $builder->replace($data, true));
+		$this->assertSame($expected, $builder->testMode()->replace($data));
 	}
 
 	//--------------------------------------------------------------------

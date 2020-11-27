@@ -1,8 +1,8 @@
 <?php namespace CodeIgniter\Database;
 
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class BaseConnectionTest extends \CIUnitTestCase
+class BaseConnectionTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $options = [
 		'DSN'      => '',
@@ -14,8 +14,6 @@ class BaseConnectionTest extends \CIUnitTestCase
 		'DBPrefix' => 'test_',
 		'pConnect' => true,
 		'DBDebug'  => (ENVIRONMENT !== 'production'),
-		'cacheOn'  => false,
-		'cacheDir' => 'my/cacheDir',
 		'charset'  => 'utf8',
 		'DBCollat' => 'utf8_general_ci',
 		'swapPre'  => '',
@@ -35,8 +33,6 @@ class BaseConnectionTest extends \CIUnitTestCase
 		'DBPrefix' => 'test_',
 		'pConnect' => true,
 		'DBDebug'  => (ENVIRONMENT !== 'production'),
-		'cacheOn'  => false,
-		'cacheDir' => 'my/cacheDir',
 		'charset'  => 'utf8',
 		'DBCollat' => 'utf8_general_ci',
 		'swapPre'  => '',
@@ -59,8 +55,6 @@ class BaseConnectionTest extends \CIUnitTestCase
 		$this->assertSame('MockDriver', $db->DBDriver);
 		$this->assertTrue($db->pConnect);
 		$this->assertTrue($db->DBDebug);
-		$this->assertFalse($db->cacheOn);
-		$this->assertSame('my/cacheDir', $db->cacheDir);
 		$this->assertSame('utf8', $db->charset);
 		$this->assertSame('utf8_general_ci', $db->DBCollat);
 		$this->assertSame('', $db->swapPre);
@@ -131,18 +125,37 @@ class BaseConnectionTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	/**
-	 * Ensures we don't have escaped - values...
-	 *
-	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/606
-	 */
-	public function testEscapeProtectsNegativeNumbers()
+	public function testMagicIssetTrue()
 	{
 		$db = new MockConnection($this->options);
 
-		$db->initialize();
-
-		$this->assertEquals("'-100'", $db->escape(-100));
+		$this->assertTrue(isset($db->charset));
 	}
 
+	//--------------------------------------------------------------------
+
+	public function testMagicIssetFalse()
+	{
+		$db = new MockConnection($this->options);
+
+		$this->assertFalse(isset($db->foobar));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testMagicGet()
+	{
+		$db = new MockConnection($this->options);
+
+		$this->assertEquals('utf8', $db->charset);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testMagicGetMissing()
+	{
+		$db = new MockConnection($this->options);
+
+		$this->assertNull($db->foobar);
+	}
 }

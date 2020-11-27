@@ -1,7 +1,12 @@
-<?php namespace CodeIgniter\Validation;
+<?php
 
-class FormatRulesTest extends \CIUnitTestCase
+namespace CodeIgniter\Validation;
+
+class FormatRulesTest extends \CodeIgniter\Test\CIUnitTestCase
 {
+
+	const ALPHABET     = 'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ';
+	const ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789';
 
 	/**
 	 * @var Validation
@@ -25,9 +30,7 @@ class FormatRulesTest extends \CIUnitTestCase
 		],
 	];
 
-	//--------------------------------------------------------------------
-
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 		$this->validation = new Validation((object) $this->config, \Config\Services::renderer());
@@ -35,8 +38,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$_FILES = [];
 	}
-
-	//--------------------------------------------------------------------
 
 	public function testRegexMatch()
 	{
@@ -53,8 +54,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertTrue($this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function testRegexMatchFalse()
 	{
 		$data = [
@@ -69,8 +68,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertFalse($this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * @dataProvider urlProvider
@@ -87,8 +84,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function urlProvider()
 	{
@@ -154,8 +149,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
-
 	/**
 	 * @dataProvider emailProviderSingle
 	 *
@@ -174,8 +167,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * @dataProvider emailsProvider
@@ -196,8 +187,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function emailProviderSingle()
 	{
 		return [
@@ -215,8 +204,6 @@ class FormatRulesTest extends \CIUnitTestCase
 			],
 		];
 	}
-
-	//--------------------------------------------------------------------
 
 	public function emailsProvider()
 	{
@@ -248,8 +235,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
-
 	/**
 	 * @dataProvider ipProvider
 	 *
@@ -269,8 +254,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function ipProvider()
 	{
@@ -323,8 +306,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
-
 	/**
 	 * @dataProvider stringProvider
 	 *
@@ -344,8 +325,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function stringProvider()
 	{
 		return [
@@ -363,8 +342,6 @@ class FormatRulesTest extends \CIUnitTestCase
 			],
 		];
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * @dataProvider alphaProvider
@@ -385,25 +362,23 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function alphaProvider()
 	{
 		return [
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ',
+				FormatRulesTest::ALPHABET,
 				true,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ ',
+				FormatRulesTest::ALPHABET . ' ',
 				false,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ1',
+				FormatRulesTest::ALPHABET . '1',
 				false,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ*',
+				FormatRulesTest::ALPHABET . '*',
 				false,
 			],
 			[
@@ -412,8 +387,6 @@ class FormatRulesTest extends \CIUnitTestCase
 			],
 		];
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * Test alpha with spaces.
@@ -436,8 +409,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function alphaSpaceProvider()
 	{
 		return [
@@ -446,25 +417,23 @@ class FormatRulesTest extends \CIUnitTestCase
 				true,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ',
+				FormatRulesTest::ALPHABET,
 				true,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ ',
+				FormatRulesTest::ALPHABET . ' ',
 				true,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ1',
+				FormatRulesTest::ALPHABET . '1',
 				false,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ*',
+				FormatRulesTest::ALPHABET . '*',
 				false,
 			],
 		];
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * @dataProvider alphaNumericProvider
@@ -485,21 +454,19 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function alphaNumericProvider()
 	{
 		return [
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789',
+				FormatRulesTest::ALPHANUMERIC,
 				true,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789\ ',
+				FormatRulesTest::ALPHANUMERIC . '\ ',
 				false,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789_',
+				FormatRulesTest::ALPHANUMERIC . '_',
 				false,
 			],
 			[
@@ -509,7 +476,98 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
+	/**
+	 * @dataProvider alphaNumericPunctProvider
+	 *
+	 * @param $str
+	 * @param $expected
+	 */
+	public function testAlphaNumericPunct($str, $expected)
+	{
+		$data = [
+			'foo' => $str,
+		];
+
+		$this->validation->setRules([
+			'foo' => 'alpha_numeric_punct',
+		]);
+
+		$this->assertEquals($expected, $this->validation->run($data));
+	}
+
+	public function alphaNumericPunctProvider()
+	{
+		return [
+			[
+				FormatRulesTest::ALPHANUMERIC . ' ~!#$%&*-_+=|:.',
+				true,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '`',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '@',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '^',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '(',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . ')',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '\\',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '{',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '}',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '[',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . ']',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '"',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . "'",
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '<',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '>',
+				false,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC . '/',
+				false,
+			],
+			[
+				null,
+				false,
+			],
+		];
+	}
 
 	/**
 	 * @dataProvider alphaNumericProvider
@@ -530,17 +588,15 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function alphaNumericSpaceProvider()
 	{
 		return [
 			[
-				' abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789',
+				' ' . FormatRulesTest::ALPHANUMERIC,
 				true,
 			],
 			[
-				' abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789-',
+				' ' . FormatRulesTest::ALPHANUMERIC . '-',
 				false,
 			],
 			[
@@ -549,8 +605,6 @@ class FormatRulesTest extends \CIUnitTestCase
 			],
 		];
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * @dataProvider alphaDashProvider
@@ -571,17 +625,15 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function alphaDashProvider()
 	{
 		return [
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789-',
+				FormatRulesTest::ALPHANUMERIC . '-',
 				true,
 			],
 			[
-				'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789-\ ',
+				FormatRulesTest::ALPHANUMERIC . '-\ ',
 				false,
 			],
 			[
@@ -591,7 +643,46 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
+	/**
+	 * @dataProvider hexProvider
+	 *
+	 * @param $str
+	 * @param $expected
+	 */
+	public function testHex($str, $expected)
+	{
+		$data = [
+			'foo' => $str,
+		];
+
+		$this->validation->setRules([
+			'foo' => 'hex',
+		]);
+
+		$this->assertEquals($expected, $this->validation->run($data));
+	}
+
+	public function hexProvider()
+	{
+		return [
+			[
+				'abcdefABCDEF0123456789',
+				true,
+			],
+			[
+				FormatRulesTest::ALPHANUMERIC,
+				false,
+			],
+			[
+				'asdfjkl;',
+				false,
+			],
+			[
+				null,
+				false,
+			],
+		];
+	}
 
 	/**
 	 * @dataProvider numericProvider
@@ -611,8 +702,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function numericProvider()
 	{
@@ -648,8 +737,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//-------------------------------------------------------------------
-
 	/**
 	 * @dataProvider integerProvider
 	 *
@@ -668,8 +755,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function integerProvider()
 	{
@@ -705,8 +790,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//-------------------------------------------------------------------
-
 	/**
 	 * @dataProvider decimalProvider
 	 *
@@ -725,8 +808,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function decimalProvider()
 	{
@@ -759,10 +840,12 @@ class FormatRulesTest extends \CIUnitTestCase
 				null,
 				false,
 			],
+			[
+				'.25',
+				true,
+			],
 		];
 	}
-
-	//-------------------------------------------------------------------
 
 	/**
 	 * @dataProvider naturalProvider
@@ -782,8 +865,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function naturalProvider()
 	{
@@ -811,8 +892,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//-------------------------------------------------------------------
-
 	/**
 	 * @dataProvider naturalZeroProvider
 	 *
@@ -831,8 +910,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function naturalZeroProvider()
 	{
@@ -860,8 +937,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//-------------------------------------------------------------------
-
 	/**
 	 * @dataProvider base64Provider
 	 *
@@ -881,8 +956,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
 
-	//--------------------------------------------------------------------
-
 	public function base64Provider()
 	{
 		return [
@@ -900,8 +973,6 @@ class FormatRulesTest extends \CIUnitTestCase
 			],
 		];
 	}
-
-	//-------------------------------------------------------------------
 
 	/**
 	 * @dataProvider jsonProvider
@@ -921,8 +992,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function jsonProvider()
 	{
@@ -966,8 +1035,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//-------------------------------------------------------------------
-
 	/**
 	 * @dataProvider timezoneProvider
 	 *
@@ -986,8 +1053,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function timezoneProvider()
 	{
@@ -1011,8 +1076,6 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
-
 	/**
 	 * @dataProvider validDateProvider
 	 *
@@ -1032,8 +1095,6 @@ class FormatRulesTest extends \CIUnitTestCase
 
 		$this->assertEquals($expected, $this->validation->run($data));
 	}
-
-	//--------------------------------------------------------------------
 
 	public function validDateProvider()
 	{
@@ -1201,5 +1262,4 @@ class FormatRulesTest extends \CIUnitTestCase
 		];
 	}
 
-	//--------------------------------------------------------------------
 }

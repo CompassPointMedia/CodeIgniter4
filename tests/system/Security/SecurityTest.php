@@ -1,21 +1,21 @@
 <?php namespace CodeIgniter\Security;
 
-use CodeIgniter\HTTP\URI;
-use CodeIgniter\HTTP\Request;
-use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\HTTP\IncomingRequest;
-use Tests\Support\Config\MockAppConfig;
+use CodeIgniter\HTTP\Request;
+use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Security\Exceptions\SecurityException;
-use Tests\Support\Security\MockSecurity;
+use CodeIgniter\Test\Mock\MockAppConfig;
+use CodeIgniter\Test\Mock\MockSecurity;
 
 //--------------------------------------------------------------------
 
 /**
  * @backupGlobals enabled
  */
-class SecurityTest extends \CIUnitTestCase {
+class SecurityTest extends \CodeIgniter\Test\CIUnitTestCase {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -62,7 +62,7 @@ class SecurityTest extends \CIUnitTestCase {
 
 	//--------------------------------------------------------------------
 
-	public function testCSRFVerifyThrowsExceptionOnNoMatch()
+	public function testCSRFVerifyPostThrowsExceptionOnNoMatch()
 	{
 		$security = new MockSecurity(new MockAppConfig());
 		$request  = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
@@ -79,12 +79,13 @@ class SecurityTest extends \CIUnitTestCase {
 
 	//--------------------------------------------------------------------
 
-	public function testCSRFVerifyReturnsSelfOnMatch()
+	public function testCSRFVerifyPostReturnsSelfOnMatch()
 	{
 		$security = new MockSecurity(new MockAppConfig());
 		$request  = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST['foo']              = 'bar';
 		$_POST['csrf_test_name']   = '8b9218a55906f9dcc1dc263dce7f005a';
 		$_COOKIE                   = [
 			'csrf_cookie_name' => '8b9218a55906f9dcc1dc263dce7f005a',
@@ -92,6 +93,85 @@ class SecurityTest extends \CIUnitTestCase {
 
 		$this->assertInstanceOf('CodeIgniter\Security\Security', $security->CSRFVerify($request));
 		$this->assertLogged('info', 'CSRF token verified');
+
+		$this->assertTrue(count($_POST) === 1);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testCSRFVerifyHeaderThrowsExceptionOnNoMatch()
+	{
+		$security = new MockSecurity(new MockAppConfig());
+		$request  = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+
+		$request->setHeader('X-CSRF-TOKEN', '8b9218a55906f9dcc1dc263dce7f005a');
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_COOKIE                   = [
+			'csrf_cookie_name' => '8b9218a55906f9dcc1dc263dce7f005b',
+		];
+
+		$this->expectException(SecurityException::class);
+		$security->CSRFVerify($request);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testCSRFVerifyHeaderReturnsSelfOnMatch()
+	{
+		$security = new MockSecurity(new MockAppConfig());
+		$request  = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+
+		$request->setHeader('X-CSRF-TOKEN', '8b9218a55906f9dcc1dc263dce7f005a');
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST['foo']              = 'bar';
+		$_COOKIE                   = [
+			'csrf_cookie_name' => '8b9218a55906f9dcc1dc263dce7f005a',
+		];
+
+		$this->assertInstanceOf('CodeIgniter\Security\Security', $security->CSRFVerify($request));
+		$this->assertLogged('info', 'CSRF token verified');
+
+		$this->assertTrue(count($_POST) === 1);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testCSRFVerifyJsonThrowsExceptionOnNoMatch()
+	{
+		$security = new MockSecurity(new MockAppConfig());
+		$request  = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+
+		$request->setBody('{"csrf_test_name":"8b9218a55906f9dcc1dc263dce7f005a"}');
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_COOKIE                   = [
+			'csrf_cookie_name' => '8b9218a55906f9dcc1dc263dce7f005b',
+		];
+
+		$this->expectException(SecurityException::class);
+		$security->CSRFVerify($request);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testCSRFVerifyJsonReturnsSelfOnMatch()
+	{
+		$security = new MockSecurity(new MockAppConfig());
+		$request  = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+
+		$request->setBody('{"csrf_test_name":"8b9218a55906f9dcc1dc263dce7f005a","foo":"bar"}');
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_COOKIE                   = [
+			'csrf_cookie_name' => '8b9218a55906f9dcc1dc263dce7f005a',
+		];
+
+		$this->assertInstanceOf('CodeIgniter\Security\Security', $security->CSRFVerify($request));
+		$this->assertLogged('info', 'CSRF token verified');
+
+		$this->assertTrue($request->getBody() === '{"foo":"bar"}');
 	}
 
 	//--------------------------------------------------------------------

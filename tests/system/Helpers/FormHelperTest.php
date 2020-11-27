@@ -3,14 +3,14 @@
 namespace CodeIgniter\Helpers;
 
 use CodeIgniter\HTTP\URI;
-use Config\App;
 use CodeIgniter\Services;
+use Config\App;
 use Config\Filters;
 
-class FormHelperTest extends \CIUnitTestCase
+class FormHelperTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -53,6 +53,29 @@ EOH;
 			'method' => 'POST',
 		];
 		$this->assertEquals($expected, form_open('foo/bar', $attributes));
+	}
+
+	// ------------------------------------------------------------------------
+	public function testFormOpenHasLocale()
+	{
+		$config            = new App();
+		$config->baseURL   = '';
+		$config->indexPage = 'index.php';
+		$request           = Services::request($config);
+		$request->uri      = new URI('http://example.com/');
+
+		Services::injectMock('request', $request);
+		$expected = <<<EOH
+<form action="http://example.com/index.php/en/foo/bar" name="form" id="form" method="POST" accept-charset="utf-8">
+
+EOH;
+
+		$attributes = [
+			'name'   => 'form',
+			'id'     => 'form',
+			'method' => 'POST',
+		];
+		$this->assertEquals($expected, form_open('{locale}/foo/bar', $attributes));
 	}
 
 	// ------------------------------------------------------------------------
@@ -174,41 +197,6 @@ EOH;
 	}
 
 	// ------------------------------------------------------------------------
-	//FIXME This needs dynamic filters to complete
-	//  public function testFormOpenWithCSRF()
-	//  {
-	//      $config = new App();
-	//      $config->baseURL = '';
-	//      $config->indexPage = 'index.php';
-	//      $request = Services::request($config);
-	//      $request->uri = new URI('http://example.com/');
-	//
-	//      Services::injectMock('request', $request);
-	//
-	//      $filters = Services::filters();
-	//      $filters->globals['before'][] = 'csrf'; // force CSRF
-	//      $before = $filters->globals['before'];
-	//
-	//      $Value = csrf_hash();
-	//      $Name = csrf_token();
-	//      $expected = <<<EOH
-	//<form action="http://example.com/index.php/foo/bar" name="form" id="form" method="POST" accept-charset="utf-8">
-	//<input type="hidden" name="foo" value="bar" style="display: none;" />
-	//<input type="hidden" name="$Name" value="$Value" style="display: none;" />
-	//
-	//EOH;
-	//
-	//      $attributes = [
-	//          'name' => 'form',
-	//          'id' => 'form',
-	//          'method' => 'POST'
-	//      ];
-	//      $hidden = [
-	//          'foo' => 'bar'
-	//      ];
-	//      $this->assertEquals($expected, form_open('foo/bar', $attributes, $hidden));
-	//  }
-	// ------------------------------------------------------------------------
 	public function testFormOpenMultipart()
 	{
 		$config            = new App();
@@ -326,7 +314,7 @@ EOH;
 	public function testFormTextarea()
 	{
 		$expected = <<<EOH
-<textarea name="notes" cols="40" rows="10" >Notes</textarea>\n
+<textarea name="notes" cols="40" rows="10">Notes</textarea>\n
 EOH;
 		$this->assertEquals($expected, form_textarea('notes', 'Notes'));
 	}
@@ -339,10 +327,33 @@ EOH;
 			'value' => 'bar',
 		];
 		$expected = <<<EOH
-<textarea name="foo" cols="40" rows="10" >bar</textarea>
+<textarea name="foo" cols="40" rows="10">bar</textarea>
 
 EOH;
 		$this->assertEquals($expected, form_textarea($data));
+	}
+
+	// ------------------------------------------------------------------------
+	public function testFormTextareaExtraRowsColsArray()
+	{
+		$extra    = [
+			'cols' => '30',
+			'rows' => '5',
+		];
+		$expected = <<<EOH
+<textarea name="notes" cols="30" rows="5">Notes</textarea>\n
+EOH;
+		$this->assertEquals($expected, form_textarea('notes', 'Notes', $extra));
+	}
+
+	// ------------------------------------------------------------------------
+	public function testFormTextareaExtraRowsColsString()
+	{
+		$extra    = 'cols="30" rows="5"';
+		$expected = <<<EOH
+<textarea name="notes" cols="30" rows="5">Notes</textarea>\n
+EOH;
+		$this->assertEquals($expected, form_textarea('notes', 'Notes', $extra));
 	}
 
 	// ------------------------------------------------------------------------
@@ -757,6 +768,39 @@ EOH;
 
 		$_SESSION = [];
 		$this->assertEquals('', set_checkbox('foo', 'bar'));
+
+		$_SESSION = [];
+		$this->assertEquals(' checked="checked"', set_checkbox('foo', 'bar', true));
+	}
+
+	// ------------------------------------------------------------------------
+	public function testSetCheckboxWithValueZero()
+	{
+		$_SESSION = [
+			'_ci_old_input' => [
+				'post' => [
+					'foo' => '0',
+				],
+			],
+		];
+
+		$this->assertEquals(' checked="checked"', set_checkbox('foo', '0'));
+
+		$_SESSION = [
+			'_ci_old_input' => [
+				'post' => [
+					'foo' => ['foo' => '0'],
+				],
+			],
+		];
+		$this->assertEquals(' checked="checked"', set_checkbox('foo', '0'));
+		$this->assertEquals('', set_checkbox('foo', 'baz'));
+
+		$_SESSION = [];
+		$this->assertEquals('', set_checkbox('foo', 'bar'));
+
+		$_SESSION = [];
+		$this->assertEquals(' checked="checked"', set_checkbox('foo', '0', true));
 	}
 
 	// ------------------------------------------------------------------------
@@ -788,6 +832,21 @@ EOH;
 		$_POST['bar'] = 'baz';
 		$this->assertEquals(' checked="checked"', set_radio('bar', 'baz'));
 		$this->assertEquals('', set_radio('bar', 'boop'));
+		$this->assertEquals(' checked="checked"', set_radio('bar', 'boop', true));
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState  disabled
+	 */
+	public function testSetRadioFromPostWithValueZero()
+	{
+		$_POST['bar'] = 0;
+		$this->assertEquals(' checked="checked"', set_radio('bar', '0'));
+		$this->assertEquals('', set_radio('bar', 'boop'));
+
+		$_POST = [];
+		$this->assertEquals(' checked="checked"', set_radio('bar', '0', true));
 	}
 
 	public function testSetRadioFromPostArray()
@@ -803,6 +862,22 @@ EOH;
 			],
 		];
 		$this->assertEquals(' checked="checked"', set_radio('bar', 'boop'));
+		$this->assertEquals('', set_radio('bar', 'baz'));
+	}
+
+	public function testSetRadioFromPostArrayWithValueZero()
+	{
+		$_SESSION = [
+			'_ci_old_input' => [
+				'post' => [
+					'bar' => [
+						'0',
+						'fuzzy',
+					],
+				],
+			],
+		];
+		$this->assertEquals(' checked="checked"', set_radio('bar', '0'));
 		$this->assertEquals('', set_radio('bar', 'baz'));
 	}
 

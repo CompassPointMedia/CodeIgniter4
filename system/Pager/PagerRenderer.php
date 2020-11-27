@@ -1,39 +1,12 @@
 <?php
 
 /**
- * CodeIgniter
+ * This file is part of the CodeIgniter 4 framework.
  *
- * An open source application development framework for PHP
+ * (c) CodeIgniter Foundation <admin@codeigniter.com>
  *
- * This content is released under the MIT License (MIT)
- *
- * Copyright (c) 2014-2019 British Columbia Institute of Technology
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * @package    CodeIgniter
- * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
- * @license    https://opensource.org/licenses/MIT	MIT License
- * @link       https://codeigniter.com
- * @since      Version 4.0.0
- * @filesource
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace CodeIgniter\Pager;
@@ -44,54 +17,64 @@ namespace CodeIgniter\Pager;
  * This class is passed to the view that describes the pagination,
  * and is used to get the link information and provide utility
  * methods needed to work with pagination.
- *
- * @package CodeIgniter\Pager
  */
 class PagerRenderer
 {
-
 	/**
 	 * First page number.
 	 *
 	 * @var integer
 	 */
 	protected $first;
+
 	/**
 	 * Last page number.
 	 *
 	 * @var integer
 	 */
 	protected $last;
+
 	/**
 	 * Current page number.
 	 *
 	 * @var integer
 	 */
 	protected $current;
+
 	/**
 	 * Total number of pages? unused?
 	 *
 	 * @var integer
 	 */
 	protected $total;
-		/**
-		 * Page count?
-		 *
-		 * @var integer
-		 */
-	protected $pageCount;
+
 	/**
-	 * URI? unused?
+	 * Page count?
 	 *
 	 * @var integer
 	 */
+	protected $pageCount;
+
+	/**
+	 * URI base for pagination links
+	 *
+	 * @var \CodeIgniter\HTTP\URI
+	 */
 	protected $uri;
+
 	/**
 	 * Segment number used for pagination.
 	 *
 	 * @var integer
 	 */
 	protected $segment;
+
+	/**
+	 * Name of $_GET parameter
+	 *
+	 * @var string
+	 */
+	protected $pageSelector;
 
 	//--------------------------------------------------------------------
 
@@ -102,13 +85,14 @@ class PagerRenderer
 	 */
 	public function __construct(array $details)
 	{
-		$this->first     = 1;
-		$this->last      = $details['pageCount'];
-		$this->current   = $details['currentPage'];
-		$this->total     = $details['total'];
-		$this->uri       = $details['uri'];
-		$this->pageCount = $details['pageCount'];
-		$this->segment   = $details['segment'] ?? 0;
+		$this->first        = 1;
+		$this->last         = $details['pageCount'];
+		$this->current      = $details['currentPage'];
+		$this->total        = $details['total'];
+		$this->uri          = $details['uri'];
+		$this->pageCount    = $details['pageCount'];
+		$this->segment      = $details['segment'] ?? 0;
+		$this->pageSelector = $details['pageSelector'] ?? 'page';
 	}
 
 	//--------------------------------------------------------------------
@@ -163,7 +147,7 @@ class PagerRenderer
 
 		if ($this->segment === 0)
 		{
-			$uri->addQuery('page', $this->first - 1);
+			$uri->addQuery($this->pageSelector, $this->first - 1);
 		}
 		else
 		{
@@ -207,7 +191,7 @@ class PagerRenderer
 
 		if ($this->segment === 0)
 		{
-			$uri->addQuery('page', $this->last + 1);
+			$uri->addQuery($this->pageSelector, $this->last + 1);
 		}
 		else
 		{
@@ -230,7 +214,7 @@ class PagerRenderer
 
 		if ($this->segment === 0)
 		{
-			$uri->addQuery('page', 1);
+			$uri->addQuery($this->pageSelector, 1);
 		}
 		else
 		{
@@ -253,7 +237,7 @@ class PagerRenderer
 
 		if ($this->segment === 0)
 		{
-			$uri->addQuery('page', $this->pageCount);
+			$uri->addQuery($this->pageSelector, $this->pageCount);
 		}
 		else
 		{
@@ -276,7 +260,7 @@ class PagerRenderer
 
 		if ($this->segment === 0)
 		{
-			$uri->addQuery('page', $this->current);
+			$uri->addQuery($this->pageSelector, $this->current);
 		}
 		else
 		{
@@ -305,7 +289,7 @@ class PagerRenderer
 		for ($i = $this->first; $i <= $this->last; $i ++)
 		{
 			$links[] = [
-				'uri'    => (string) ($this->segment === 0 ? $uri->addQuery('page', $i) : $uri->setSegment($this->segment, $i)),
+				'uri'    => (string) ($this->segment === 0 ? $uri->addQuery($this->pageSelector, $i) : $uri->setSegment($this->segment, $i)),
 				'title'  => (int) $i,
 				'active' => ($i === $this->current),
 			];
@@ -335,4 +319,86 @@ class PagerRenderer
 	}
 
 	//--------------------------------------------------------------------
+
+	/**
+	 * Checks to see if there is a "previous" page before our "first" page.
+	 *
+	 * @return boolean
+	 */
+	public function hasPreviousPage(): bool
+	{
+		return $this->current > 1;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Returns a URL to the "previous" page.
+	 *
+	 * You MUST call hasPreviousPage() first, or this value may be invalid.
+	 *
+	 * @return string|null
+	 */
+	public function getPreviousPage()
+	{
+		if (! $this->hasPreviousPage())
+		{
+			return null;
+		}
+
+		$uri = clone $this->uri;
+
+		if ($this->segment === 0)
+		{
+			$uri->addQuery($this->pageSelector, $this->current - 1);
+		}
+		else
+		{
+			$uri->setSegment($this->segment, $this->current - 1);
+		}
+
+		return (string) $uri;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Checks to see if there is a "next" page after our "last" page.
+	 *
+	 * @return boolean
+	 */
+	public function hasNextPage(): bool
+	{
+		return $this->current < $this->last;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Returns a URL to the "next" page.
+	 *
+	 * You MUST call hasNextPage() first, or this value may be invalid.
+	 *
+	 * @return string|null
+	 */
+	public function getNextPage()
+	{
+		if (! $this->hasNextPage())
+		{
+			return null;
+		}
+
+		$uri = clone $this->uri;
+
+		if ($this->segment === 0)
+		{
+			$uri->addQuery($this->pageSelector, $this->current + 1);
+		}
+		else
+		{
+			$uri->setSegment($this->segment, $this->current + 1);
+		}
+
+		return (string) $uri;
+	}
 }

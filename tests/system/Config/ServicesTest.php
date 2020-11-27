@@ -1,28 +1,28 @@
 <?php
+
 namespace Config;
 
-use Tests\Support\HTTP\MockResponse;
+use CodeIgniter\Format\Format;
+use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\Mock\MockResponse;
 
-class ServicesTest extends \CIUnitTestCase
+class ServicesTest extends CIUnitTestCase
 {
-
 	protected $config;
 	protected $original;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
 		$this->original = $_SERVER;
-		//      $_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'es; q=1.0, en; q=0.5';
-		$this->config = new App();
-		//      $this->config->negotiateLocale = true;
-		//      $this->config->supportedLocales = ['en', 'es'];
+		$this->config   = new App();
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		$_SERVER = $this->original;
+		Services::reset();
 	}
 
 	public function testNewAutoloader()
@@ -53,6 +53,24 @@ class ServicesTest extends \CIUnitTestCase
 	{
 		$actual = Services::curlrequest();
 		$this->assertInstanceOf(\CodeIgniter\HTTP\CURLRequest::class, $actual);
+	}
+
+	public function testNewEmail()
+	{
+		$actual = Services::email();
+		$this->assertInstanceOf(\CodeIgniter\Email\Email::class, $actual);
+	}
+
+	public function testNewUnsharedEmailWithEmptyConfig()
+	{
+		$actual = Services::email(null, false);
+		$this->assertInstanceOf(\CodeIgniter\Email\Email::class, $actual);
+	}
+
+	public function testNewUnsharedEmailWithNonEmptyConfig()
+	{
+		$actual = Services::email(new \Config\Email(), false);
+		$this->assertInstanceOf(\CodeIgniter\Email\Email::class, $actual);
 	}
 
 	public function testNewExceptions()
@@ -263,6 +281,16 @@ class ServicesTest extends \CIUnitTestCase
 		$this->assertInstanceOf(\CodeIgniter\Filters\Filters::class, $result);
 	}
 
+	public function testFormat()
+	{
+		$this->assertInstanceOf(Format::class, Services::format());
+	}
+
+	public function testUnsharedFormat()
+	{
+		$this->assertInstanceOf(Format::class, Services::format(null, false));
+	}
+
 	public function testHoneypot()
 	{
 		$result = Services::honeypot();
@@ -315,6 +343,13 @@ class ServicesTest extends \CIUnitTestCase
 	{
 		$result = Services::typography();
 		$this->assertInstanceOf(\CodeIgniter\Typography\Typography::class, $result);
+	}
+
+	public function testServiceInstance()
+	{
+		rename(COMPOSER_PATH, COMPOSER_PATH . '.backup');
+		$this->assertInstanceOf(\Config\Services::class, new \Config\Services());
+		rename(COMPOSER_PATH . '.backup', COMPOSER_PATH);
 	}
 
 }

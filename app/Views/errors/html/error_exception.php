@@ -64,12 +64,12 @@
 							<!-- Trace info -->
 							<?php if (isset($row['file']) && is_file($row['file'])) :?>
 								<?php
-								if (isset($row['function']) && in_array($row['function'], ['include', 'include_once', 'require', 'require_once']))
-									{
+								if (isset($row['function']) && in_array($row['function'], ['include', 'include_once', 'require', 'require_once'], true))
+								{
 									echo $row['function'] . ' ' . static::cleanPath($row['file']);
 								}
 								else
-									{
+								{
 									echo static::cleanPath($row['file']) . ' : ' . $row['line'];
 								}
 								?>
@@ -89,9 +89,9 @@
 										<?php
 										$params = null;
 										// Reflection by name is not available for closure function
-										if (substr( $row['function'], -1 ) !== '}')
+										if (substr($row['function'], -1) !== '}')
 										{
-											$mirror = isset( $row['class'] ) ? new \ReflectionMethod( $row['class'], $row['function'] ) : new \ReflectionFunction( $row['function'] );
+											$mirror = isset($row['class']) ? new \ReflectionMethod($row['class'], $row['function']) : new \ReflectionFunction($row['function']);
 											$params = $mirror->getParameters();
 										}
 										foreach ($row['args'] as $key => $value) : ?>
@@ -114,7 +114,7 @@
 						</p>
 
 						<!-- Source? -->
-						<?php if (isset($row['file']) && is_file($row['file']) &&  isset($row['class'])) : ?>
+						<?php if (isset($row['file']) && is_file($row['file']) && isset($row['class'])) : ?>
 							<div class="source">
 								<?= static::highlightFile($row['file'], $row['line']) ?>
 							</div>
@@ -132,7 +132,7 @@
 					<?php if (empty($GLOBALS[$var]) || ! is_array($GLOBALS[$var]))
 					{
 						continue;
-} ?>
+					} ?>
 
 					<h3>$<?= $var ?></h3>
 
@@ -235,7 +235,7 @@
 					<?php if (empty($GLOBALS[$var]) || ! is_array($GLOBALS[$var]))
 					{
 						continue;
-} ?>
+					} ?>
 
 					<?php $empty = false; ?>
 
@@ -287,15 +287,15 @@
 							</tr>
 						</thead>
 						<tbody>
-						<?php foreach ($headers as $name => $value) : ?>
+						<?php foreach ($headers as $value) : ?>
 							<?php if (empty($value))
 							{
 								continue;
-} ?>
+							} ?>
 							<?php if (! is_array($value))
 							{
 								$value = [$value];
-} ?>
+							} ?>
 							<?php foreach ($value as $h) : ?>
 								<tr>
 									<td><?= esc($h->getName(), 'html') ?></td>
@@ -354,7 +354,7 @@
 
 				<ol>
 				<?php foreach ($files as $file) :?>
-					<li><?= htmlspecialchars( static::cleanPath($file), ENT_SUBSTITUTE, 'UTF-8') ?></li>
+					<li><?= htmlspecialchars(static::cleanPath($file), ENT_SUBSTITUTE, 'UTF-8') ?></li>
 				<?php endforeach ?>
 				</ol>
 			</div>

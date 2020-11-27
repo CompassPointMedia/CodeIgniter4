@@ -1,11 +1,17 @@
-<?php namespace CodeIgniter\Database;
+<?php
 
+namespace CodeIgniter\Database\Migrations;
+
+use CodeIgniter\Database\BaseConnection;
+use CodeIgniter\Database\Config;
+use CodeIgniter\Database\MigrationRunner;
+use CodeIgniter\Events\Events;
 use CodeIgniter\Exceptions\ConfigException;
-use Config\Migrations;
-use org\bovigo\vfs\vfsStream;
 use CodeIgniter\Test\CIDatabaseTestCase;
-use org\bovigo\vfs\visitor\vfsStreamStructureVisitor;
+use Config\Database;
+use Config\Migrations;
 use Config\Services;
+use org\bovigo\vfs\vfsStream;
 
 /**
  * @group DatabaseLive
@@ -18,7 +24,7 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 	protected $start;
 	protected $config;
 
-	public function setUp()
+	public function setUp(): void
 	{
 		parent::setUp();
 
@@ -32,13 +38,16 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 
 	public function testLoadsDefaultDatabaseWhenNoneSpecified()
 	{
-		$dbConfig = new \Config\Database();
+		$dbConfig = new Database();
 		$runner   = new MigrationRunner($this->config);
 
 		$db = $this->getPrivateProperty($runner, 'db');
 
 		$this->assertInstanceOf(BaseConnection::class, $db);
-		$this->assertEquals($dbConfig->tests['database'], $this->getPrivateProperty($db, 'database'));
+		$this->assertEquals(
+			($dbConfig->tests['DBDriver'] === 'SQLite3' ? WRITEPATH : '' ) . $dbConfig->tests['database'],
+			$this->getPrivateProperty($db, 'database')
+		);
 		$this->assertEquals($dbConfig->tests['DBDriver'], $this->getPrivateProperty($db, 'DBDriver'));
 	}
 
@@ -73,9 +82,22 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 			'batch'     => 1,
 		];
 
+		if ($this->db->DBDriver === 'Sqlsrv')
+		{
+			$this->db->simpleQuery('SET IDENTITY_INSERT ' . $this->db->prefixTable('migrations') . ' ON');
+		}
+
 		$this->hasInDatabase('migrations', $history);
 
 		$this->assertEquals($history, (array) $runner->getHistory()[0]);
+
+		if ($this->db->DBDriver === 'Sqlsrv')
+		{
+			$this->db->simpleQuery('SET IDENTITY_INSERT ' . $this->db->prefixTable('migrations') . ' OFF');
+
+			$db = $this->getPrivateProperty($runner, 'db');
+			$db->table('migrations')->delete(['id' => 4]);
+		}
 	}
 
 	public function testGetHistoryReturnsEmptyArrayWithNoResults()
@@ -193,7 +215,7 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 								 'version'   => '2018-01-24-102302',
 								 'class'     => 'Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
 								 'namespace' => 'Tests\Support\MigrationTestMigrations',
-								 'uid'       => '2018-01-24-102302Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
+								 'uid'       => '20180124102302Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
 							 ];
 		$mig1->uid = $runner->getObjectUid($mig1);
 
@@ -204,12 +226,11 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 		$this->assertEquals($mig2, array_shift($migrations));
 	}
 
-	/**
-	 * @expectedException        \CodeIgniter\Exceptions\ConfigException
-	 * @expectedExceptionMessage Migrations have been loaded but are disabled or setup incorrectly.
-	 */
 	public function testMigrationThrowsDisabledException()
 	{
+		$this->expectException('CodeIgniter\Exceptions\ConfigException');
+		$this->expectExceptionMessage('Migrations have been loaded but are disabled or setup incorrectly.');
+
 		$config          = $this->config;
 		$config->enabled = false;
 		$runner          = new MigrationRunner($config);
@@ -231,7 +252,7 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 
 	public function testVersionReturnsUpDownSuccess()
 	{
-		$forge = \Config\Database::forge();
+		$forge = Database::forge();
 		$forge->dropTable('foo', true);
 
 		$config = $this->config;
@@ -254,14 +275,12 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 		$this->assertFalse($this->db->tableExists('foo'));
 	}
 
-	public function testProgressSuccess()
+	public function testLatestSuccess()
 	{
-		$config = $this->config;
-		$runner = new MigrationRunner($config);
-		$runner->setSilent(false);
-		$runner->clearHistory();
-
-		$runner = $runner->setNamespace('Tests\Support\MigrationTestMigrations');
+		$runner = new MigrationRunner($this->config);
+		$runner->setSilent(false)
+			->setNamespace('Tests\Support\MigrationTestMigrations')
+			->clearHistory();
 
 		$runner->latest();
 		$version = $runner->getBatchEnd($runner->getLastBatch());
@@ -276,14 +295,14 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 
 	public function testRegressSuccess()
 	{
-		$config = $this->config;
-		$runner = new MigrationRunner($config);
-		$runner->setSilent(false);
+		$runner = new MigrationRunner($this->config);
+		$runner->setSilent(false)
+			->setNamespace('Tests\Support\MigrationTestMigrations')
+			->clearHistory();
 
-		$runner = $runner->setNamespace('Tests\Support\MigrationTestMigrations');
 		$runner->latest();
-
 		$runner->regress();
+
 		$version = $runner->getBatchEnd($runner->getLastBatch());
 
 		$this->assertEquals(0, $version);
@@ -291,6 +310,43 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 
 		$history = $runner->getHistory();
 		$this->assertEmpty($history);
+	}
+
+	public function testLatestTriggersEvent()
+	{
+		$runner = new MigrationRunner($this->config);
+		$runner->setSilent(false)
+			->setNamespace('Tests\Support\MigrationTestMigrations')
+			->clearHistory();
+
+		$result = null;
+		Events::on('migrate', function ($arg) use (&$result) {
+			$result = $arg;
+		});
+
+		$runner->latest();
+
+		$this->assertIsArray($result);
+		$this->assertEquals('latest', $result['method']);
+	}
+
+	public function testRegressTriggersEvent()
+	{
+		$runner = new MigrationRunner($this->config);
+		$runner->setSilent(false)
+			->setNamespace('Tests\Support\MigrationTestMigrations')
+			->clearHistory();
+
+		$result = null;
+		Events::on('migrate', function ($arg) use (&$result) {
+			$result = $arg;
+		});
+
+		$runner->latest();
+		$runner->regress();
+
+		$this->assertIsArray($result);
+		$this->assertEquals('regress', $result['method']);
 	}
 
 	public function testHistoryRecordsBatches()

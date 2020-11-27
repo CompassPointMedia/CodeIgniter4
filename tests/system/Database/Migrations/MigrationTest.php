@@ -1,10 +1,13 @@
-<?php namespace CodeIgniter\Database;
+<?php
 
+namespace CodeIgniter\Database\Migrations;
+
+use CodeIgniter\Database\Migration;
 use CodeIgniter\Test\CIDatabaseTestCase;
 
 class MigrationTest extends CIDatabaseTestCase
 {
-	public function setUp()
+	public function setUp(): void
 	{
 		parent::setUp();
 	}

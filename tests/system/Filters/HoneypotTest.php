@@ -1,16 +1,13 @@
 <?php
 namespace CodeIgniter\Filters;
 
-use Config\Filters as FilterConfig;
 use CodeIgniter\Config\Services;
-use CodeIgniter\Filters\Exceptions\FilterException;
 use CodeIgniter\Honeypot\Exceptions\HoneypotException;
-use CodeIgniter\HTTP\ResponseInterface;
 
 /**
  * @backupGlobals enabled
  */
-class HoneypotTest extends \CIUnitTestCase
+class HoneypotTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected $config;
@@ -18,7 +15,7 @@ class HoneypotTest extends \CIUnitTestCase
 	protected $request;
 	protected $response;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 		$this->config = new \Config\Filters();
@@ -89,7 +86,7 @@ class HoneypotTest extends \CIUnitTestCase
 
 		$this->response->setBody('<form></form>');
 		$this->response = $filters->run($uri, 'after');
-		$this->assertContains($this->honey->name, $this->response->getBody());
+		$this->assertStringContainsString($this->honey->name, $this->response->getBody());
 	}
 
 	//--------------------------------------------------------------------
@@ -113,7 +110,7 @@ class HoneypotTest extends \CIUnitTestCase
 
 		$this->response->setBody('<div></div>');
 		$this->response = $filters->run($uri, 'after');
-		$this->assertNotContains($this->honey->name, $this->response->getBody());
+		$this->assertStringNotContainsString($this->honey->name, $this->response->getBody());
 	}
 
 }

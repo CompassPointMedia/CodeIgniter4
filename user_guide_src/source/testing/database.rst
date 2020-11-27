@@ -46,16 +46,16 @@ of the functionality described here::
         }
     }
 
-Test Database Setup
-===================
+Setting Up a Test Database
+==========================
 
 When running database tests, you need to provide a database that can be used during testing. Instead of
 using the PHPUnit built-in database features, the framework provides tools specific to CodeIgniter. The first
-step is to ensure that you have a ``tests`` database group setup in **app/Config/Database.php**.
+step is to ensure that you have set up a ``tests`` database group in **app/Config/Database.php**.
 This specifies a database connection that is only used while running tests, to keep your other data safe.
 
-If you have multiple developers on your team, you will likely want to keep your credentials store in
-the **.env** file. To do so, edit the file to ensure the following lines are present, and have the
+If you have multiple developers on your team, you will likely want to keep your credentials stored in
+the **.env** file. To do so, edit the file to ensure the following lines are present and have the
 correct information::
 
     database.tests.dbdriver = 'MySQLi';
@@ -66,8 +66,8 @@ correct information::
 Migrations and Seeds
 --------------------
 
-When running tests you need to ensure that your database has the correct schema setup, and that
-it is in a known state for every test. You can use migrations and seeds to setup your database,
+When running tests, you need to ensure that your database has the correct schema set up and that
+it is in a known state for every test. You can use migrations and seeds to set up your database,
 by adding a couple of class properties to your test.
 ::
 
@@ -85,7 +85,8 @@ by adding a couple of class properties to your test.
 **$refresh**
 
 This boolean value determines whether the database is completely refreshed before every test. If true,
-all migrations are rolled back to version 0, then the database is migrated to the latest available migration.
+all migrations are rolled back to version 0. The database is always migrated to the latest available
+state as defined by ``$namespace``.
 
 **$seed**
 
@@ -100,14 +101,23 @@ but the path to the single directory that holds the sub-directory.
 
 **$namespace**
 
-By default, CodeIgniter will look in **tests/_support/DatabaseTestMigrations/Database/Migrations** to locate the migrations
+By default, CodeIgniter will look in **tests/_support/Database/Migrations** to locate the migrations
 that it should run during testing. You can change this location by specifying a new namespace in the ``$namespace`` properties.
 This should not include the **Database/Migrations** path, just the base namespace.
+To run migrations from all available namespaces set this property to ``null``.
 
 Helper Methods
 ==============
 
 The **CIDatabaseTestCase** class provides several helper methods to aid in testing your database.
+
+**regressDatabase()**
+
+Called during ``$refresh`` described above, this method is available if you need to reset the database manually.
+
+**migrateDatabase()**
+
+Called during ``setUp``, this method is available if you need to run migrations manually.
 
 **seed($name)**
 

@@ -1,25 +1,30 @@
 <?php
+
 namespace CodeIgniter\HTTP;
 
+use CodeIgniter\Config\Config;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
+use CodeIgniter\Test\Mock\MockResponse;
 use Config\App;
-use Config\Format;
+use Config\Services;
 use DateTime;
 use DateTimeZone;
-use Tests\Support\HTTP\MockResponse;
 
-class ResponseTest extends \CIUnitTestCase
+class ResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected $server;
+
+	protected function setUp(): void
 	{
 		parent::setUp();
 		$this->server = $_SERVER;
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		$_SERVER = $this->server;
+		Config::reset();
 	}
 
 	public function testCanSetStatusCode()
@@ -158,28 +163,36 @@ class ResponseTest extends \CIUnitTestCase
 
 	public function testSetLink()
 	{
-		$response = new Response(new App());
+		// Ensure our URL is not getting overridden
+		$config          = new App();
+		$config->baseURL = 'http://example.com/test/';
+		Config::injectMock('App', $config);
+
+		$response = new Response($config);
 		$pager    = \Config\Services::pager();
 
 		$pager->store('default', 3, 10, 200);
 		$response->setLink($pager);
 
 		$this->assertEquals(
-				'<http://example.com?page=1>; rel="first",<http://example.com?page=2>; rel="prev",<http://example.com?page=4>; rel="next",<http://example.com?page=20>; rel="last"', $response->getHeader('Link')->getValue()
+			'<http://example.com/test/?page=1>; rel="first",<http://example.com/test/?page=2>; rel="prev",<http://example.com/test/?page=4>; rel="next",<http://example.com/test/?page=20>; rel="last"',
+			$response->getHeader('Link')->getValue()
 		);
 
 		$pager->store('default', 1, 10, 200);
 		$response->setLink($pager);
 
 		$this->assertEquals(
-				'<http://example.com?page=2>; rel="next",<http://example.com?page=20>; rel="last"', $response->getHeader('Link')->getValue()
+			'<http://example.com/test/?page=2>; rel="next",<http://example.com/test/?page=20>; rel="last"',
+			$response->getHeader('Link')->getValue()
 		);
 
 		$pager->store('default', 20, 10, 200);
 		$response->setLink($pager);
 
 		$this->assertEquals(
-				'<http://example.com?page=1>; rel="first",<http://example.com?page=19>; rel="prev"', $response->getHeader('Link')->getValue()
+			'<http://example.com/test/?page=1>; rel="first",<http://example.com/test/?page=19>; rel="prev"',
+			$response->getHeader('Link')->getValue()
 		);
 	}
 
@@ -331,10 +344,6 @@ class ResponseTest extends \CIUnitTestCase
 
 	public function testJSONWithArray()
 	{
-		$response  = new Response(new App());
-		$config    = new Format();
-		$formatter = $config->getFormatter('application/json');
-
 		$body     = [
 			'foo' => 'bar',
 			'bar' => [
@@ -343,8 +352,9 @@ class ResponseTest extends \CIUnitTestCase
 				3,
 			],
 		];
-		$expected = $formatter->format($body);
+		$expected = Services::format()->getFormatter('application/json')->format($body);
 
+		$response = new Response(new App());
 		$response->setJSON($body);
 
 		$this->assertEquals($expected, $response->getJSON());
@@ -353,10 +363,6 @@ class ResponseTest extends \CIUnitTestCase
 
 	public function testJSONGetFromNormalBody()
 	{
-		$response  = new Response(new App());
-		$config    = new Format();
-		$formatter = $config->getFormatter('application/json');
-
 		$body     = [
 			'foo' => 'bar',
 			'bar' => [
@@ -365,8 +371,9 @@ class ResponseTest extends \CIUnitTestCase
 				3,
 			],
 		];
-		$expected = $formatter->format($body);
+		$expected = Services::format()->getFormatter('application/json')->format($body);
 
+		$response = new Response(new App());
 		$response->setBody($body);
 
 		$this->assertEquals($expected, $response->getJSON());
@@ -376,10 +383,6 @@ class ResponseTest extends \CIUnitTestCase
 
 	public function testXMLWithArray()
 	{
-		$response  = new Response(new App());
-		$config    = new Format();
-		$formatter = $config->getFormatter('application/xml');
-
 		$body     = [
 			'foo' => 'bar',
 			'bar' => [
@@ -388,8 +391,9 @@ class ResponseTest extends \CIUnitTestCase
 				3,
 			],
 		];
-		$expected = $formatter->format($body);
+		$expected = Services::format()->getFormatter('application/xml')->format($body);
 
+		$response = new Response(new App());
 		$response->setXML($body);
 
 		$this->assertEquals($expected, $response->getXML());
@@ -398,10 +402,6 @@ class ResponseTest extends \CIUnitTestCase
 
 	public function testXMLGetFromNormalBody()
 	{
-		$response  = new Response(new App());
-		$config    = new Format();
-		$formatter = $config->getFormatter('application/xml');
-
 		$body     = [
 			'foo' => 'bar',
 			'bar' => [
@@ -410,8 +410,9 @@ class ResponseTest extends \CIUnitTestCase
 				3,
 			],
 		];
-		$expected = $formatter->format($body);
+		$expected = Services::format()->getFormatter('application/xml')->format($body);
 
+		$response = new Response(new App());
 		$response->setBody($body);
 
 		$this->assertEquals($expected, $response->getXML());
@@ -511,6 +512,7 @@ class ResponseTest extends \CIUnitTestCase
 	}
 
 	//--------------------------------------------------------------------
+
 	// Make sure cookies are set by RedirectResponse this way
 	// See https://github.com/codeigniter4/CodeIgniter4/issues/1393
 	public function testRedirectResponseCookies()
@@ -527,6 +529,7 @@ class ResponseTest extends \CIUnitTestCase
 	}
 
 	//--------------------------------------------------------------------
+
 	// Make sure we don't blow up if pretending to send headers
 	public function testPretendOutput()
 	{
@@ -543,4 +546,13 @@ class ResponseTest extends \CIUnitTestCase
 		$this->assertEquals('Happy days', $actual);
 	}
 
+	public function testInvalidSameSiteCookie()
+	{
+		$config                 = new App();
+		$config->cookieSameSite = 'Invalid';
+
+		$this->expectException(HTTPException::class);
+		$this->expectExceptionMessage(lang('HTTP.invalidSameSiteSetting', ['Invalid']));
+		new Response($config);
+	}
 }

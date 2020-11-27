@@ -40,7 +40,7 @@ language codes like en-US for American English, or fr-FR, for French/France. A m
 to this can be found on the `W3C's site <https://www.w3.org/International/articles/language-tags/>`_.
 
 The system is smart enough to fall back to more generic language codes if an exact match
-cannot be found. If the locale code was set to **en-US** and we only have language files setup for **en**
+cannot be found. If the locale code was set to **en-US** and we only have language files set up for **en**
 then those will be used since nothing exists for the more specific **en-US**. If, however, a language
 directory existed at **app/Language/en-US** then that would be used first.
 
@@ -55,7 +55,7 @@ will be used to set the locale.
 Content Negotiation
 -------------------
 
-You can setup content negotiation to happen automatically by setting two additional settings in Config/App.
+You can set up content negotiation to happen automatically by setting two additional settings in Config/App.
 The first value tells the Request class that we do want to negotiate a locale, so simply set it to true::
 
     public $negotiateLocale = true;
@@ -113,9 +113,17 @@ Languages do not have any specific naming convention that are required. The file
 describe the type of content it holds. For example, let's say you want to create a file containing error messages.
 You might name it simply: **Errors.php**.
 
-Within the file, you would return an array, where each element in the array has a language key and the string to return::
+Within the file, you would return an array, where each element in the array has a language key and can have string to return::
 
-        'language_key' => 'The actual message to be shown.'
+    'language_key' => 'The actual message to be shown.'
+
+It also support nested definition::
+
+    'language_key' => [
+        'nested' => [
+            'key' => 'The actual message to be shown.'
+        ],
+    ],
 
 .. note:: It's good practice to use a common prefix for all messages in a given file to avoid collisions with
     similarly named items in other files. For example, if you are creating error messages you might prefix them
@@ -127,6 +135,11 @@ Within the file, you would return an array, where each element in the array has 
         'errorEmailMissing'    => 'You must submit an email address',
         'errorURLMissing'      => 'You must submit a URL',
         'errorUsernameMissing' => 'You must submit a username',
+        'nested'             => [
+            'error' => [
+                'message' => 'A specific error message',
+            ],
+        ],
     ];
 
 Basic Usage
@@ -138,13 +151,17 @@ filename and the language key as the first parameter, separated by a period (.).
 
     echo lang('Errors.errorEmailMissing');
 
+For nested definition, you would do the following::
+
+    echo lang('Errors.nested.error.message');
+
 If the requested language key doesn't exist in the file for the current locale, the string will be passed
-back, unchanged. In this example, it would return 'Errors.errorEmailMissing' if it didn't exist.
+back, unchanged. In this example, it would return 'Errors.errorEmailMissing' or 'Errors.nested.error.message' if it didn't exist.
 
 Replacing Parameters
 --------------------
 
-.. note:: The following functions all require the `intl <http://php.net/manual/en/book.intl.php>`_ extension to
+.. note:: The following functions all require the `intl <https://www.php.net/manual/en/book.intl.php>`_ extension to
     be loaded on your system in order to work. If the extension is not loaded, no replacement will be attempted.
     A great overview can be found over at `Sitepoint <https://www.sitepoint.com/localization-demystified-understanding-php-intl/>`_.
 
@@ -154,7 +171,7 @@ You can pass an array of values to replace placeholders in the language string a
     // The language file, Tests.php:
     return [
         "apples"      => "I have {0, number} apples.",
-        "men"         => "I have {1, number} men out-performed the remaining {0, number}",
+        "men"         => "The top {1, number} men out-performed the remaining {0, number}",
         "namedApples" => "I have {number_apples, number, integer} apples.",
     ];
 
@@ -172,7 +189,7 @@ You can also use named keys to make it easier to keep things straight, if you'd 
     echo lang("Tests.namedApples", ['number_apples' => 3]);
 
 Obviously, you can do more than just number replacement. According to the
-`official ICU docs <http://icu-project.org/apiref/icu4c/classMessageFormat.html#details>`_ for the underlying
+`official ICU docs <https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/classMessageFormat.html#details>`_ for the underlying
 library, the following types of data can be replaced:
 
 * numbers - integer, currency, percent
@@ -293,6 +310,6 @@ You could download that repository, and copy its ``Language`` folder
 into your ``app``. The incorporated translations will be automatically
 picked up because the ``App`` namespace is mapped to your ``app`` folder.
 
-Alternately, a better practice would be to ``composer install codeigniter4/translations``
+Alternately, a better practice would be to ``composer require codeigniter4/translations``
 inside your project, and the translated messages will be automatically picked
 up because the translations folders get mapped appropriately.
