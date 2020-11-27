@@ -3,19 +3,17 @@ namespace CodeIgniter\Config;
 
 use org\bovigo\vfs\vfsStream;
 
-//require_once 'system/Benchmark/Timer.php';
-
 /**
  * @backupGlobals enabled
  */
-class DotEnvTest extends \CIUnitTestCase
+class DotEnvTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected $fixturesFolder;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -29,7 +27,7 @@ class DotEnvTest extends \CIUnitTestCase
 		chmod($path, 0644);
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 
@@ -54,6 +52,21 @@ class DotEnvTest extends \CIUnitTestCase
 		$this->assertEquals('baz', getenv('BAR'));
 		$this->assertEquals('with spaces', getenv('SPACED'));
 		$this->assertEquals('', getenv('NULL'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testLoadsHex2Bin()
+	{
+		$dotenv = new DotEnv($this->fixturesFolder, 'encryption.env');
+		$dotenv->load();
+
+		$value = getenv('encryption.key');
+
+		$this->assertTrue(! empty($value));
+		$this->assertEquals('f699c7fd18a8e082d0228932f3acd40e1ef5ef92efcedda32842a211d62f0aa6', bin2hex($value));
+		$this->assertEquals('hex2bin:f699c7fd18a8e082d0228932f3acd40e1ef5ef92efcedda32842a211d62f0aa6', getenv('different.key'));
+		$this->assertEquals('OpenSSL', getenv('encryption.driver'));
 	}
 
 	//--------------------------------------------------------------------

@@ -1,6 +1,6 @@
 <?php namespace CodeIgniter\Validation;
 
-class CreditCardRulesTest extends \CIUnitTestCase
+class CreditCardRulesTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -27,7 +27,7 @@ class CreditCardRulesTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 		$this->validation = new Validation((object) $this->config, \Config\Services::renderer());

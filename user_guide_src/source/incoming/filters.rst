@@ -16,7 +16,7 @@ and power. Some common examples of tasks that might be performed with filters ar
 * Perform rate limiting on certain endpoints
 * Display a "Down for Maintenance" page
 * Perform automatic content negotiation
-* and more..
+* and more...
 
 *****************
 Creating a Filter
@@ -35,14 +35,14 @@ but may leave the methods empty if they are not needed. A skeleton filter class 
 
     class MyFilter implements FilterInterface
     {
-        public function before(RequestInterface $request)
+        public function before(RequestInterface $request, $arguments = null)
         {
             // Do something here
         }
 
         //--------------------------------------------------------------------
 
-        public function after(RequestInterface $request, ResponseInterface $response)
+        public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
         {
             // Do something here
         }
@@ -58,7 +58,7 @@ Since before filters are executed prior to your controller being executed, you m
 actions in the controller from happening. You can do this by passing back anything that is not the request object.
 This is typically used to perform redirects, like in this example::
 
-    public function before(RequestInterface $request)
+    public function before(RequestInterface $request, $arguments = null)
     {
         $auth = service('auth');
 
@@ -69,7 +69,7 @@ This is typically used to perform redirects, like in this example::
     }
 
 If a Response instance is returned, the Response will be sent back to the client and script execution will stop.
-This can be useful for implementing rate limiting for API's. See **app/Filters/Throttle.php** for an
+This can be useful for implementing rate limiting for API's. See :doc:`Throttler </libraries/throttler>` for an
 example.
 
 After Filters
@@ -119,36 +119,36 @@ The second section allows you to define any filters that should be applied to ev
 You should take care with how many you use here, since it could have performance implications to have too many
 run on every request. Filters can be specified by adding their alias to either the before or after array::
 
-	public $globals = [
-		'before' => [
-			'csrf'
-		],
-		'after'  => []
-	];
+    public $globals = [
+        'before' => [
+            'csrf'
+        ],
+        'after'  => []
+    ];
 
 There are times where you want to apply a filter to almost every request, but have a few that should be left alone.
 One common example is if you need to exclude a few URI's from the CSRF protection filter to allow requests from
 third-party websites to hit one or two specific URI's, while keeping the rest of them protected. To do this, add
 an array with the 'except' key and a uri to match as the value alongside the alias::
 
-	public $globals = [
-		'before' => [
-			'csrf' => ['except' => 'api/*']
-		],
-		'after'  => []
-	];
+    public $globals = [
+        'before' => [
+            'csrf' => ['except' => 'api/*']
+        ],
+        'after'  => []
+    ];
 
 Any place you can use a URI in the filter settings, you can use a regular expression or, like in this example, use
 an asterisk for a wildcard that will match all characters after that. In this example, any URL's starting with ``api/``
 would be exempted from CSRF protection, but the site's forms would all be protected. If you need to specify multiple
 URI's you can use an array of URI patterns::
 
-	public $globals = [
-		'before' => [
-			'csrf' => ['except' => ['foo/*', 'bar/*']]
-		],
-		'after'  => []
-	];
+    public $globals = [
+        'before' => [
+            'csrf' => ['except' => ['foo/*', 'bar/*']]
+        ],
+        'after'  => []
+    ];
 
 $methods
 ========
@@ -166,6 +166,8 @@ In addition to the standard HTTP methods, this also supports two special cases: 
 self-explanatory here, but 'cli' would apply to all requests that were run from the command line, while 'ajax'
 would apply to every AJAX request.
 
+.. note:: The AJAX requests depends on the ``X-Requested-With`` header, which in some cases is not sent by default in XHR requests via JavaScript (i.e. fetch). See the :doc:`AJAX Requests </general/ajax>` section on how to avoid this problem.
+
 $filters
 ========
 
@@ -176,6 +178,15 @@ a list of URI patterns that filter should apply to::
         'foo' => ['before' => ['admin/*'], 'after' => ['users/*']],
         'bar' => ['before' => ['api/*', 'admin/*']]
     ];
+
+Filter arguments
+=================
+
+When configuring filters, additional arguments may be passed to a filter when setting up the route::
+
+    $routes->add('users/delete/(:segment)', 'AdminController::index', ['filter' => 'admin-auth:dual,noreturn']);
+
+In this example, the array ``['dual', 'noreturn']`` will be passed in ``$arguments`` to the filter's ``before()`` and ``after()`` implementation methods.
 
 ****************
 Provided Filters

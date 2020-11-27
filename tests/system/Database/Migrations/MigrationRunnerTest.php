@@ -1,11 +1,10 @@
 <?php namespace CodeIgniter\Database;
 
 use CodeIgniter\Exceptions\ConfigException;
-use Config\Migrations;
-use org\bovigo\vfs\vfsStream;
 use CodeIgniter\Test\CIDatabaseTestCase;
-use org\bovigo\vfs\visitor\vfsStreamStructureVisitor;
+use Config\Migrations;
 use Config\Services;
+use org\bovigo\vfs\vfsStream;
 
 /**
  * @group DatabaseLive
@@ -18,7 +17,7 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 	protected $start;
 	protected $config;
 
-	public function setUp()
+	public function setUp(): void
 	{
 		parent::setUp();
 
@@ -38,7 +37,10 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 		$db = $this->getPrivateProperty($runner, 'db');
 
 		$this->assertInstanceOf(BaseConnection::class, $db);
-		$this->assertEquals($dbConfig->tests['database'], $this->getPrivateProperty($db, 'database'));
+		$this->assertEquals(
+			($dbConfig->tests['DBDriver'] === 'SQLite3' ? WRITEPATH : '' ) . $dbConfig->tests['database'],
+			$this->getPrivateProperty($db, 'database')
+		);
 		$this->assertEquals($dbConfig->tests['DBDriver'], $this->getPrivateProperty($db, 'DBDriver'));
 	}
 
@@ -193,7 +195,7 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 								 'version'   => '2018-01-24-102302',
 								 'class'     => 'Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
 								 'namespace' => 'Tests\Support\MigrationTestMigrations',
-								 'uid'       => '2018-01-24-102302Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
+								 'uid'       => '20180124102302Tests\Support\MigrationTestMigrations\Database\Migrations\Migration_another_migration',
 							 ];
 		$mig1->uid = $runner->getObjectUid($mig1);
 
@@ -204,12 +206,11 @@ class MigrationRunnerTest extends CIDatabaseTestCase
 		$this->assertEquals($mig2, array_shift($migrations));
 	}
 
-	/**
-	 * @expectedException        \CodeIgniter\Exceptions\ConfigException
-	 * @expectedExceptionMessage Migrations have been loaded but are disabled or setup incorrectly.
-	 */
 	public function testMigrationThrowsDisabledException()
 	{
+		$this->expectException('CodeIgniter\Exceptions\ConfigException');
+		$this->expectExceptionMessage('Migrations have been loaded but are disabled or setup incorrectly.');
+
 		$config          = $this->config;
 		$config->enabled = false;
 		$runner          = new MigrationRunner($config);

@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -37,7 +38,7 @@
 
 namespace CodeIgniter\Language;
 
-use CodeIgniter\Config\Services;
+use Config\Services;
 
 /**
  * Handle system messages and localization.
@@ -148,7 +149,7 @@ class Language
 			$parsedLine,
 		] = $this->parseLine($line, $this->locale);
 
-		$output = $this->language[$this->locale][$file][$parsedLine] ?? null;
+		$output = $this->getTranslationOutput($this->locale, $file, $parsedLine);
 
 		if ($output === null && strpos($this->locale, '-'))
 		{
@@ -159,14 +160,17 @@ class Language
 				$parsedLine,
 			] = $this->parseLine($line, $locale);
 
-			$output = $this->language[$locale][$file][$parsedLine] ?? null;
+			$output = $this->getTranslationOutput($locale, $file, $parsedLine);
 		}
 
 		// if still not found, try English
-		if (empty($output))
+		if ($output === null)
 		{
-			$this->parseLine($line, 'en');
-			$output = $this->language['en'][$file][$parsedLine] ?? null;
+			[
+				$file,
+				$parsedLine,
+			]       = $this->parseLine($line, 'en');
+			$output = $this->getTranslationOutput('en', $file, $parsedLine);
 		}
 
 		$output = $output ?? $line;
@@ -180,6 +184,42 @@ class Language
 	}
 
 	//--------------------------------------------------------------------
+
+	/**
+	 * @return array|string|null
+	 */
+	private function getTranslationOutput(string $locale, string $file, string $parsedLine)
+	{
+		$output = $this->language[$locale][$file][$parsedLine] ?? null;
+		if ($output !== null)
+		{
+			return $output;
+		}
+
+		foreach (explode('.', $parsedLine) as $row)
+		{
+			if (! isset($current))
+			{
+				$current = $this->language[$locale][$file] ?? null;
+			}
+
+			$output = $current[$row] ?? null;
+			if (is_array($output))
+			{
+				$current = $output;
+			}
+		}
+
+		if ($output !== null)
+		{
+			return $output;
+		}
+
+		$row = current(explode('.', $parsedLine));
+		$key = substr($parsedLine, strlen($row) + 1);
+
+		return $this->language[$locale][$file][$row][$key] ?? null;
+	}
 
 	/**
 	 * Parses the language string which should include the
@@ -298,7 +338,7 @@ class Language
 	 */
 	protected function requireFile(string $path): array
 	{
-		$files   = Services::locator()->search($path);
+		$files   = Services::locator()->search($path, 'php', false);
 		$strings = [];
 
 		foreach ($files as $file)

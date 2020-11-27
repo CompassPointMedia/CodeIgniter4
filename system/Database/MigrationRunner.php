@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -37,10 +38,10 @@
 
 namespace CodeIgniter\Database;
 
-use Config\Services;
 use CodeIgniter\CLI\CLI;
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\Exceptions\ConfigException;
+use Config\Services;
 
 /**
  * Class MigrationRunner
@@ -128,6 +129,20 @@ class MigrationRunner
 	 */
 	protected $path;
 
+	/**
+	 * The database Group filter.
+	 *
+	 * @var string
+	 */
+	protected $groupFilter;
+
+	/**
+	 * Used to skip current migration.
+	 *
+	 * @var boolean
+	 */
+	protected $groupSkip = false;
+
 	//--------------------------------------------------------------------
 
 	/**
@@ -180,6 +195,7 @@ class MigrationRunner
 		// Set database group if not null
 		if (! is_null($group))
 		{
+			$this->groupFilter = $group;
 			$this->setGroup($group);
 		}
 
@@ -206,6 +222,12 @@ class MigrationRunner
 		{
 			if ($this->migrate('up', $migration))
 			{
+				if ($this->groupSkip === true)
+				{
+					$this->groupSkip = false;
+					continue;
+				}
+
 				$this->addHistory($migration, $batch);
 			}
 			// If a migration failed then try to back out what was done
@@ -283,6 +305,9 @@ class MigrationRunner
 			throw new \RuntimeException($message);
 		}
 
+		// Save the namespace to restore it after loading migrations
+		$tmpNamespace = $this->namespace;
+
 		// Get all migrations
 		$this->namespace = null;
 		$allMigrations   = $this->findMigrations();
@@ -298,7 +323,7 @@ class MigrationRunner
 			}
 
 			// Get the migrations from each history
-			foreach ($this->getBatchHistory($batch) as $history)
+			foreach ($this->getBatchHistory($batch, 'desc') as $history)
 			{
 				// Create a UID from the history to match its migration
 				$uid = $this->getObjectUid($history);
@@ -344,6 +369,9 @@ class MigrationRunner
 			}
 		}
 
+		// Restore the namespace
+		$this->namespace = $tmpNamespace;
+
 		return true;
 	}
 
@@ -370,6 +398,7 @@ class MigrationRunner
 		// Set database group if not null
 		if (! is_null($group))
 		{
+			$this->groupFilter = $group;
 			$this->setGroup($group);
 		}
 
@@ -406,11 +435,13 @@ class MigrationRunner
 			// Start a new batch
 			$batch = $this->getLastBatch() + 1;
 
-			if ($this->migrate('up', $migration))
+			if ($this->migrate('up', $migration) && $this->groupSkip === false)
 			{
 				$this->addHistory($migration, $batch);
 				return true;
 			}
+
+			$this->groupSkip = false;
 		}
 
 		// down
@@ -657,7 +688,7 @@ class MigrationRunner
 	 */
 	public function getObjectUid($object): string
 	{
-		return $object->version . $object->class;
+		return preg_replace('/[^0-9]/', '', $object->version) . $object->class;
 	}
 
 	//--------------------------------------------------------------------
@@ -789,13 +820,13 @@ class MigrationRunner
 	 *
 	 * @return array
 	 */
-	public function getBatchHistory(int $batch): array
+	public function getBatchHistory(int $batch, $order = 'asc'): array
 	{
 		$this->ensureTable();
 
 		$query = $this->db->table($this->table)
 						  ->where('batch', $batch)
-						  ->orderBy('id', 'asc')
+						  ->orderBy('id', $order)
 						  ->get();
 
 		return $query ? $query->getResultObject() : [];
@@ -920,8 +951,8 @@ class MigrationRunner
 
 		$forge->addField([
 			'id'        => [
-				'type'           => 'INTEGER',
-				'constraint'     => 255,
+				'type'           => 'BIGINT',
+				'constraint'     => 20,
 				'unsigned'       => true,
 				'auto_increment' => true,
 			],
@@ -991,8 +1022,28 @@ class MigrationRunner
 			throw new \RuntimeException($message);
 		}
 
-		// Forcing migration to selected database group
-		$instance = new $class(\Config\Database::forge($this->group));
+		// Initialize migration
+		$instance = new $class();
+		// Determine DBGroup to use
+		$group = $instance->getDBGroup() ?? config('Database')->defaultGroup;
+
+		// Skip tests db group when not running in testing environment
+		if (ENVIRONMENT !== 'testing' && $group === 'tests' && $this->groupFilter !== 'tests')
+		{
+			// @codeCoverageIgnoreStart
+			$this->groupSkip = true;
+			return true;
+			// @codeCoverageIgnoreEnd
+		}
+
+		// Skip migration if group filtering was set
+		if ($direction === 'up' && ! is_null($this->groupFilter) && $this->groupFilter !== $group)
+		{
+			$this->groupSkip = true;
+			return true;
+		}
+
+		$this->setGroup($group);
 
 		if (! is_callable([$instance, $direction]))
 		{

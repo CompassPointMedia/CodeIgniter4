@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,8 +39,8 @@
 
 namespace CodeIgniter\API;
 
-use Config\Format;
 use CodeIgniter\HTTP\Response;
+use Config\Format;
 
 /**
  * Response trait.
@@ -55,7 +56,6 @@ use CodeIgniter\HTTP\Response;
  */
 trait ResponseTrait
 {
-
 	/**
 	 * Allows child classes to override the
 	 * status code that is used in their API.
@@ -65,6 +65,7 @@ trait ResponseTrait
 	protected $codes = [
 		'created'                   => 201,
 		'deleted'                   => 200,
+		'updated'                   => 200,
 		'no_content'                => 204,
 		'invalid_request'           => 400,
 		'unsupported_response_type' => 400,
@@ -91,6 +92,15 @@ trait ResponseTrait
 		'unsupported_grant_type'    => 501,
 		'not_implemented'           => 501,
 	];
+
+	/**
+	 * How to format the response data.
+	 * Either 'json' or 'xml'. If blank will be
+	 * determine through content negotiation.
+	 *
+	 * @var string
+	 */
+	protected $format = 'json';
 
 	//--------------------------------------------------------------------
 
@@ -187,6 +197,19 @@ trait ResponseTrait
 	public function respondDeleted($data = null, string $message = '')
 	{
 		return $this->respond($data, $this->codes['deleted'], $message);
+	}
+
+	/**
+	 * Used after a resource has been successfully updated.
+	 *
+	 * @param mixed  $data    Data.
+	 * @param string $message Message.
+	 *
+	 * @return mixed
+	 */
+	public function respondUpdated($data = null, string $message = '')
+	{
+		return $this->respond($data, $this->codes['updated'], $message);
 	}
 
 	//--------------------------------------------------------------------
@@ -363,9 +386,14 @@ trait ResponseTrait
 			return $data;
 		}
 
-		// Determine correct response type through content negotiation
 		$config = new Format();
-		$format = $this->request->negotiate('media', $config->supportedResponseFormats, false);
+		$format = "application/$this->format";
+
+		// Determine correct response type through content negotiation if not explicitly declared
+		if (empty($this->format) || ! in_array($this->format, ['json', 'xml']))
+		{
+			$format = $this->request->negotiate('media', $config->supportedResponseFormats, false);
+		}
 
 		$this->response->setContentType($format);
 
@@ -386,4 +414,17 @@ trait ResponseTrait
 		return $this->formatter->format($data);
 	}
 
+	/**
+	 * Sets the format the response should be in.
+	 *
+	 * @param string $format
+	 *
+	 * @return $this
+	 */
+	public function setResponseFormat(string $format = null)
+	{
+		$this->format = strtolower($format);
+
+		return $this;
+	}
 }

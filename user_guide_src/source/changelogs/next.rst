@@ -3,12 +3,9 @@ Version |version|
 
 Release Date: Not released
 
-**Next (pre-)release of CodeIgniter4**
+**Next release of CodeIgniter4**
 
+Enhancements
+------------
 
-The list of changed files follows, with PR numbers shown.
-
-
-PRs merged:
------------
-
+-

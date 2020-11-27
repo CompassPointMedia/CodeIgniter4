@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -77,17 +78,15 @@ class MemcachedHandler implements CacheInterface
 	/**
 	 * Constructor.
 	 *
-	 * @param  type $config
-	 * @throws type
+	 * @param \Config\Cache $config
 	 */
 	public function __construct($config)
 	{
-		$config       = (array)$config;
-		$this->prefix = $config['prefix'] ?? '';
+		$this->prefix = $config->prefix ?: '';
 
 		if (! empty($config))
 		{
-			$this->config = array_merge($this->config, $config['memcached']);
+			$this->config = array_merge($this->config, $config->memcached);
 		}
 	}
 
@@ -247,7 +246,8 @@ class MemcachedHandler implements CacheInterface
 		{
 			return $this->memcached->set($key, $value, $ttl);
 		}
-		elseif ($this->memcached instanceof \Memcache)
+
+		if ($this->memcached instanceof \Memcache)
 		{
 			return $this->memcached->set($key, $value, 0, $ttl);
 		}
@@ -262,7 +262,7 @@ class MemcachedHandler implements CacheInterface
 	 *
 	 * @param string $key Cache item name
 	 *
-	 * @return mixed
+	 * @return boolean
 	 */
 	public function delete(string $key)
 	{
@@ -321,7 +321,7 @@ class MemcachedHandler implements CacheInterface
 	/**
 	 * Will delete all items in the entire cache.
 	 *
-	 * @return mixed
+	 * @return boolean
 	 */
 	public function clean()
 	{

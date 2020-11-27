@@ -1,12 +1,12 @@
 <?php
 namespace CodeIgniter\Helpers;
 
-final class HTMLHelperTest extends \CIUnitTestCase
+final class HTMLHelperTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	private $tracks;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -37,6 +38,8 @@
  */
 
 namespace CodeIgniter\Database;
+
+use CodeIgniter\Entity;
 
 /**
  * Class BaseResult
@@ -164,11 +167,11 @@ abstract class BaseResult implements ResultInterface
 		$_data = null;
 		if (($c = count($this->resultArray)) > 0)
 		{
-			$_data = 'result_array';
+			$_data = 'resultArray';
 		}
 		elseif (($c = count($this->resultObject)) > 0)
 		{
-			$_data = 'result_object';
+			$_data = 'resultObject';
 		}
 
 		if ($_data !== null)
@@ -186,12 +189,12 @@ abstract class BaseResult implements ResultInterface
 			return $this->customResultObject[$className];
 		}
 
-		is_null($this->rowData) || $this->dataSeek(0);
+		is_null($this->rowData) || $this->dataSeek();
 		$this->customResultObject[$className] = [];
 
 		while ($row = $this->fetchObject($className))
 		{
-			if (method_exists($row, 'syncOriginal'))
+			if (! is_subclass_of($row, Entity::class) && method_exists($row, 'syncOriginal'))
 			{
 				$row->syncOriginal();
 			}
@@ -236,7 +239,7 @@ abstract class BaseResult implements ResultInterface
 			return $this->resultArray;
 		}
 
-		is_null($this->rowData) || $this->dataSeek(0);
+		is_null($this->rowData) || $this->dataSeek();
 		while ($row = $this->fetchAssoc())
 		{
 			$this->resultArray[] = $row;
@@ -279,10 +282,10 @@ abstract class BaseResult implements ResultInterface
 			return $this->resultObject;
 		}
 
-		is_null($this->rowData) || $this->dataSeek(0);
+		is_null($this->rowData) || $this->dataSeek();
 		while ($row = $this->fetchObject())
 		{
-			if (method_exists($row, 'syncOriginal'))
+			if (! is_subclass_of($row, Entity::class) && method_exists($row, 'syncOriginal'))
 			{
 				$row->syncOriginal();
 			}
@@ -311,7 +314,7 @@ abstract class BaseResult implements ResultInterface
 		if (! is_numeric($n))
 		{
 			// We cache the row data for subsequent uses
-			is_array($this->rowData) || $this->rowData = $this->getRowArray(0);
+			is_array($this->rowData) || $this->rowData = $this->getRowArray();
 
 			// array_key_exists() instead of isset() to allow for NULL values
 			if (empty($this->rowData) || ! array_key_exists($n, $this->rowData))
@@ -432,7 +435,7 @@ abstract class BaseResult implements ResultInterface
 		// We cache the row data for subsequent uses
 		if (! is_array($this->rowData))
 		{
-			$this->rowData = $this->getRowArray(0);
+			$this->rowData = $this->getRowArray();
 		}
 
 		if (is_array($key))

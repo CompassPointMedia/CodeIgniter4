@@ -1,13 +1,10 @@
 <?php
 namespace CodeIgniter\Encrypt;
 
-use CodeIgniter\Config\Services;
-use CodeIgniter\Test\CIUnitTestCase;
-
-class OpenSSLHandlerTest extends CIUnitTestCase
+class OpenSSLHandlerTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	public function setUp()
+	public function setUp(): void
 	{
 		$this->encryption = new \CodeIgniter\Encryption\Encryption();
 	}
@@ -58,11 +55,11 @@ class OpenSSLHandlerTest extends CIUnitTestCase
 
 	/**
 	 * Starter key needed
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testWithoutKey()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		$encrypter = new \CodeIgniter\Encryption\Handlers\OpenSSLHandler();
 		$message1  = 'This is a plain-text message.';
 		$encrypter->encrypt($message1);
@@ -79,11 +76,11 @@ class OpenSSLHandlerTest extends CIUnitTestCase
 
 	/**
 	 * Authentication will fail decrypting with the wrong key
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testWithWrongKeyString()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		$key1      = 'abracadabra';
 		$encrypter = new \CodeIgniter\Encryption\Handlers\OpenSSLHandler();
 		$message1  = 'This is a plain-text message.';
@@ -104,11 +101,11 @@ class OpenSSLHandlerTest extends CIUnitTestCase
 
 	/**
 	 * Authentication will fail decrypting with the wrong key
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testWithWrongKeyArray()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		$key1      = 'abracadabra';
 		$encrypter = new \CodeIgniter\Encryption\Handlers\OpenSSLHandler();
 		$message1  = 'This is a plain-text message.';

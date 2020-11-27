@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CodeIgniter
  *
@@ -7,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -105,7 +107,7 @@ abstract class BaseCommand
 	 * Instance of the CommandRunner controller
 	 * so commands can call other commands.
 	 *
-	 * @var \CodeIgniter\CLI\CommandRunner
+	 * @var \CodeIgniter\CLI\Commands
 	 */
 	protected $commands;
 
@@ -114,10 +116,10 @@ abstract class BaseCommand
 	/**
 	 * BaseCommand constructor.
 	 *
-	 * @param \Psr\Log\LoggerInterface       $logger
-	 * @param \CodeIgniter\CLI\CommandRunner $commands
+	 * @param \Psr\Log\LoggerInterface  $logger
+	 * @param \CodeIgniter\CLI\Commands $commands
 	 */
-	public function __construct(LoggerInterface $logger, CommandRunner $commands)
+	public function __construct(LoggerInterface $logger, Commands $commands)
 	{
 		$this->logger   = $logger;
 		$this->commands = $commands;
@@ -150,7 +152,7 @@ abstract class BaseCommand
 		// for the command name.
 		array_unshift($params, $command);
 
-		return $this->commands->index($params);
+		return $this->commands->run($command, $params);
 	}
 
 	//--------------------------------------------------------------------
@@ -186,6 +188,20 @@ abstract class BaseCommand
 		}
 
 		return null;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Makes it simple to check our protected properties.
+	 *
+	 * @param string $key
+	 *
+	 * @return boolean
+	 */
+	public function __isset(string $key): bool
+	{
+		return isset($this->$key);
 	}
 
 	//--------------------------------------------------------------------

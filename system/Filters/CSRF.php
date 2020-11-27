@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -56,6 +57,7 @@ use Config\Services;
  */
 class CSRF implements FilterInterface
 {
+
 	/**
 	 * Do whatever processing this filter needs to do.
 	 * By default it should not return anything during
@@ -67,10 +69,12 @@ class CSRF implements FilterInterface
 	 * redirects, etc.
 	 *
 	 * @param RequestInterface|\CodeIgniter\HTTP\IncomingRequest $request
+	 * @param array|null                                         $arguments
 	 *
 	 * @return mixed
+	 * @throws \CodeIgniter\Security\Exceptions\SecurityException
 	 */
-	public function before(RequestInterface $request)
+	public function before(RequestInterface $request, $arguments = null)
 	{
 		if ($request->isCLI())
 		{
@@ -101,10 +105,11 @@ class CSRF implements FilterInterface
 	 *
 	 * @param RequestInterface|\CodeIgniter\HTTP\IncomingRequest $request
 	 * @param ResponseInterface|\CodeIgniter\HTTP\Response       $response
+	 * @param array|null                                         $arguments
 	 *
 	 * @return mixed
 	 */
-	public function after(RequestInterface $request, ResponseInterface $response)
+	public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
 	{
 	}
 

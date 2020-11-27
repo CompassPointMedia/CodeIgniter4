@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +31,7 @@
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
  * @copyright  2008-2014 EllisLab, Inc. (https://ellislab.com/)
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 1.0.0
@@ -853,7 +854,7 @@ if (! function_exists('excerpt'))
 		$post  = ' ';
 		$count = 0;
 
-		foreach (array_reverse($pre) as $pr => $e)
+		foreach (array_reverse($pre) as $e)
 		{
 			if ((strlen($e) + $count + 1) < $radius)
 			{
@@ -864,7 +865,7 @@ if (! function_exists('excerpt'))
 
 		$count = 0;
 
-		foreach ($pos as $po => $s)
+		foreach ($pos as $s)
 		{
 			if ((strlen($s) + $count + 1) < $radius)
 			{

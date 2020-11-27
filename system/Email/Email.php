@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014 - 2019, British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,8 +39,8 @@
 
 namespace CodeIgniter\Email;
 
+use CodeIgniter\Events\Events;
 use Config\Mimes;
-use Psr\Log\LoggerAwareTrait;
 
 /**
  * CodeIgniter Email Class
@@ -54,7 +55,18 @@ use Psr\Log\LoggerAwareTrait;
  */
 class Email
 {
-	use LoggerAwareTrait;
+	/**
+	 * Properties from the last successful send.
+	 *
+	 * @var array|null
+	 */
+	public $archive;
+	/**
+	 * Properties to be added to the next archive.
+	 *
+	 * @var array
+	 */
+	protected $tmpArchive = [];
 	/**
 	 * @var string
 	 */
@@ -354,12 +366,6 @@ class Email
 	 * @var boolean
 	 */
 	protected static $func_overload;
-	/**
-	 * Logger instance to record error messages and awarnings.
-	 *
-	 * @var \PSR\Log\LoggerInterface
-	 */
-	protected $logger;
 	//--------------------------------------------------------------------
 	/**
 	 * Constructor - Sets Email Preferences
@@ -372,7 +378,6 @@ class Email
 	{
 		$this->initialize($config);
 		isset(static::$func_overload) || static::$func_overload = (extension_loaded('mbstring') && ini_get('mbstring.func_overload'));
-		log_message('info', 'Email Class Initialized');
 	}
 	//--------------------------------------------------------------------
 	/**
@@ -459,6 +464,11 @@ class Email
 				$this->validateEmail($this->stringToArray($returnPath));
 			}
 		}
+
+		// Store the plain text values
+		$this->tmpArchive['fromEmail'] = $from;
+		$this->tmpArchive['fromName']  = $name;
+
 		// prepare the display name
 		if ($name !== '')
 		{
@@ -476,6 +486,8 @@ class Email
 		$this->setHeader('From', $name . ' <' . $from . '>');
 		isset($returnPath) || $returnPath = $from;
 		$this->setHeader('Return-Path', '<' . $returnPath . '>');
+		$this->tmpArchive['returnPath'] = $returnPath;
+
 		return $this;
 	}
 	//--------------------------------------------------------------------
@@ -499,6 +511,8 @@ class Email
 		}
 		if ($name !== '')
 		{
+			$this->tmpArchive['replyName'] = $name;
+
 			// only use Q encoding if there are characters that would require it
 			if (! preg_match('/[\200-\377]/', $name))
 			{
@@ -511,14 +525,16 @@ class Email
 			}
 		}
 		$this->setHeader('Reply-To', $name . ' <' . $replyto . '>');
-		$this->replyToFlag = true;
+		$this->replyToFlag           = true;
+		$this->tmpArchive['replyTo'] = $replyto;
+
 		return $this;
 	}
 	//--------------------------------------------------------------------
 	/**
 	 * Set Recipients
 	 *
-	 * @param string $to
+	 * @param string|array $to
 	 *
 	 * @return Email
 	 */
@@ -557,6 +573,7 @@ class Email
 		{
 			$this->CCArray = $cc;
 		}
+		$this->tmpArchive['CCArray'] = $cc;
 		return $this;
 	}
 	//--------------------------------------------------------------------
@@ -587,6 +604,7 @@ class Email
 		else
 		{
 			$this->setHeader('Bcc', implode(', ', $bcc));
+			$this->tmpArchive['BCCArray'] = $bcc;
 		}
 		return $this;
 	}
@@ -600,6 +618,8 @@ class Email
 	 */
 	public function setSubject($subject)
 	{
+		$this->tmpArchive['subject'] = $subject;
+
 		$subject = $this->prepQEncoding($subject);
 		$this->setHeader('Subject', $subject);
 		return $this;
@@ -900,7 +920,7 @@ class Email
 	/**
 	 * Validate Email Address
 	 *
-	 * @param string $email
+	 * @param string|array $email
 	 *
 	 * @return boolean
 	 */
@@ -915,7 +935,7 @@ class Email
 		{
 			if (! $this->isValidEmail($val))
 			{
-				$this->setErrorMessage(lang('Email.invalidAddress', $val));
+				$this->setErrorMessage(lang('Email.invalidAddress', [$val]));
 				return false;
 			}
 		}
@@ -1497,7 +1517,7 @@ class Email
 		$output                 = '=?' . $this->charset . '?Q?';
 		for ($i = 0, $length = static::strlen($output); $i < $chars; $i ++)
 		{
-			$chr = ($this->charset === 'UTF-8' && ICONV_ENABLED === true) ? '=' . implode('=', str_split(strtoupper(bin2hex(iconv_substr($str, $i, 1, $this->charset))), 2)) : '=' . strtoupper(bin2hex($str[$i]));
+			$chr = ($this->charset === 'UTF-8' && extension_loaded('iconv')) ? '=' . implode('=', str_split(strtoupper(bin2hex(iconv_substr($str, $i, 1, $this->charset))), 2)) : '=' . strtoupper(bin2hex($str[$i]));
 			// RFC 2045 sets a limit of 76 characters per line.
 			// We'll append ?= to the end of each line though.
 			if ($length + ($l = static::strlen($chr)) > 74)
@@ -1538,8 +1558,7 @@ class Email
 		{
 			$this->setReplyTo($this->headers['From']);
 		}
-		if (empty($this->recipients) && ! isset($this->headers['To']) && empty($this->BCCArray) && ! isset($this->headers['Bcc']) && ! isset($this->headers['Cc'])
-		)
+		if (empty($this->recipients) && ! isset($this->headers['To']) && empty($this->BCCArray) && ! isset($this->headers['Bcc']) && ! isset($this->headers['Cc']))
 		{
 			$this->setErrorMessage(lang('Email.noRecipients'));
 			return false;
@@ -1556,10 +1575,18 @@ class Email
 		}
 		$this->buildMessage();
 		$result = $this->spoolEmail();
-		if ($result && $autoClear)
+		if ($result)
 		{
-			$this->clear();
+			$this->setArchiveValues();
+
+			if ($autoClear)
+			{
+				$this->clear();
+			}
+
+			Events::trigger('email', $this->archive);
 		}
+
 		return $result;
 	}
 	//--------------------------------------------------------------------
@@ -1603,6 +1630,10 @@ class Email
 			$this->buildMessage();
 			$this->spoolEmail();
 		}
+
+		// Update the archive
+		$this->setArchiveValues();
+		Events::trigger('email', $this->archive);
 	}
 	//--------------------------------------------------------------------
 	/**
@@ -1651,7 +1682,7 @@ class Email
 		catch (\ErrorException $e)
 		{
 			$success = false;
-			$this->logger->error('Email: ' . $method . ' throwed ' . $e->getMessage());
+			log_message('error', 'Email: ' . $method . ' throwed ' . $e->getMessage());
 		}
 		if (! $success)
 		{
@@ -1696,20 +1727,18 @@ class Email
 	 */
 	protected function sendWithMail()
 	{
-		if (is_array($this->recipients))
-		{
-			$this->recipients = implode(', ', $this->recipients);
-		}
+		$recipients = is_array($this->recipients) ? implode(', ', $this->recipients) : $this->recipients;
+
 		// _validate_email_for_shell() below accepts by reference,
 		// so this needs to be assigned to a variable
 		$from = $this->cleanEmail($this->headers['Return-Path']);
 		if (! $this->validateEmailForShell($from))
 		{
-			return mail($this->recipients, $this->subject, $this->finalBody, $this->headerStr);
+			return mail($recipients, $this->subject, $this->finalBody, $this->headerStr);
 		}
 		// most documentation of sendmail using the "-f" flag lacks a space after it, however
 		// we've encountered servers that seem to require it to be in place.
-		return mail($this->recipients, $this->subject, $this->finalBody, $this->headerStr, '-f ' . $from);
+		return mail($recipients, $this->subject, $this->finalBody, $this->headerStr, '-f ' . $from);
 	}
 	//--------------------------------------------------------------------
 	/**
@@ -1800,7 +1829,7 @@ class Email
 		}
 		// perform dot transformation on any lines that begin with a dot
 		$this->sendData($this->headerStr . preg_replace('/^\./m', '..$1', $this->finalBody));
-		$this->sendData('.');
+		$this->sendData($this->newline . '.');
 		$reply = $this->getSMTPData();
 		$this->setErrorMessage($reply);
 		$this->SMTPEnd();
@@ -2138,5 +2167,22 @@ class Email
 			return mb_substr($str, $start, $length, '8bit');
 		}
 		return isset($length) ? substr($str, $start, $length) : substr($str, $start);
+	}
+	//--------------------------------------------------------------------
+	/**
+	 * Determines the values that should be stored in $archive.
+	 *
+	 * @return array The updated archive values
+	 */
+	protected function setArchiveValues(): array
+	{
+		// Get property values and add anything prepped in tmpArchive
+		$this->archive = array_merge(get_object_vars($this), $this->tmpArchive);
+		unset($this->archive['archive']);
+
+		// Clear tmpArchive for next run
+		$this->tmpArchive = [];
+
+		return $this->archive;
 	}
 }

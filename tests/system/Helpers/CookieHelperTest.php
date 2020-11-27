@@ -1,14 +1,14 @@
 <?php
 namespace CodeIgniter\Helpers;
 
-use Config\App;
 use CodeIgniter\Config\Services;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\URI;
 use CodeIgniter\HTTP\UserAgent;
-use Tests\Support\HTTP\MockResponse;
+use CodeIgniter\Test\Mock\MockResponse;
+use Config\App;
 
-final class CookieHelperTest extends \CIUnitTestCase
+final class CookieHelperTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	private $name;
@@ -16,7 +16,7 @@ final class CookieHelperTest extends \CIUnitTestCase
 	private $expire;
 	private $response;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -102,6 +102,15 @@ final class CookieHelperTest extends \CIUnitTestCase
 		$_COOKIE['TEST'] = 5;
 
 		$this->assertEquals(5, get_cookie('TEST'));
+	}
+
+	public function testDeleteCookieAfterLastSet()
+	{
+		delete_cookie($this->name);
+
+		$cookie = $this->response->getCookie($this->name);
+		// The cookie is set to be cleared when the request is sent....
+		$this->assertEquals('', $cookie['value']);
 	}
 
 }

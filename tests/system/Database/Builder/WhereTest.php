@@ -1,15 +1,15 @@
 <?php namespace Builder;
 
 use CodeIgniter\Database\BaseBuilder;
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class WhereTest extends \CIUnitTestCase
+class WhereTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $db;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -217,6 +217,49 @@ class WhereTest extends \CIUnitTestCase
 		$expectedSQL = 'SELECT * FROM "jobs" WHERE "id" IN (SELECT "job_id" FROM "users_jobs" WHERE "user_id" = 3)';
 
 		$this->assertEquals($expectedSQL, str_replace("\n", ' ', $builder->getCompiledSelect()));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function provideInvalidKeys()
+	{
+		return [
+			'null'         => [null],
+			'empty string' => [''],
+		];
+	}
+
+	/**
+	 * @dataProvider provideInvalidKeys
+	 */
+	public function testWhereInvalidKeyThrowInvalidArgumentException($key)
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		$builder = $this->db->table('jobs');
+
+		$builder->whereIn($key, ['Politician', 'Accountant']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function provideInvalidValues()
+	{
+		return [
+			'null'                    => [null],
+			'not array'               => ['not array'],
+			'not instanceof \Closure' => [new \stdClass],
+		];
+	}
+
+	/**
+	 * @dataProvider provideInvalidValues
+	 */
+	public function testWhereInEmptyValuesThrowInvalidArgumentException($values)
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		$builder = $this->db->table('jobs');
+
+		$builder->whereIn('name', $values);
 	}
 
 	//--------------------------------------------------------------------

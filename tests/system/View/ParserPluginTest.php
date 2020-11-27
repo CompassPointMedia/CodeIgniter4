@@ -1,6 +1,6 @@
 <?php
 
-class ParserPluginTest extends \CIUnitTestCase
+class ParserPluginTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	/**
 	 * @var \CodeIgniter\View\Parser
@@ -11,7 +11,7 @@ class ParserPluginTest extends \CIUnitTestCase
 	 */
 	protected $validator;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

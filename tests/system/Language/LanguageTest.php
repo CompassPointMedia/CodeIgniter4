@@ -1,11 +1,11 @@
 <?php
 namespace CodeIgniter\Language;
 
+use CodeIgniter\Test\Mock\MockLanguage;
 use Config\Services;
-use Tests\Support\Language\MockLanguage;
 use Tests\Support\Language\SecondMockLanguage;
 
-class LanguageTest extends \CIUnitTestCase
+class LanguageTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	public function testReturnsStringWithNoFileInMessage()
@@ -221,7 +221,7 @@ class LanguageTest extends \CIUnitTestCase
 		$language = Services::language('en', false);
 		// this should load the replacement bundle of messages
 		$message = lang('Core.missingExtension', [], 'en');
-		$this->assertEquals('{0} extension could not be found.', $message);
+		$this->assertEquals('{0} extension is not loaded.', $message);
 		// and we should have our new message too
 		$this->assertEquals('billions and billions', lang('Core.bazillion', [], 'en'));
 	}
@@ -311,6 +311,23 @@ class LanguageTest extends \CIUnitTestCase
 		$this->assertEquals('Temple of Artemis', $language->getLine('Allin.fiv'));
 		$this->assertEquals('envy', $language->getLine('Allin.six'));
 		$this->assertEquals('Hanging Gardens of Babylon', $language->getLine('Allin.sev'));
+	}
+
+	public function testLanguageNestedArrayDefinition()
+	{
+		$lang = new SecondMockLanguage('en');
+		$lang->loadem('Nested', 'en');
+
+		$this->assertEquals('e', $lang->getLine('Nested.a.b.c.d'));
+	}
+
+	public function testLanguageKeySeparatedByDot()
+	{
+		$lang = new SecondMockLanguage('en');
+		$lang->loadem('Foo', 'en');
+
+		$this->assertEquals('The fieldname field is very short.', $lang->getLine('Foo.bar.min_length1', ['field' => 'fieldname']));
+		$this->assertEquals('The fieldname field is very short.', $lang->getLine('Foo.baz.min_length3.short', ['field' => 'fieldname']));
 	}
 
 }

@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,8 +39,8 @@
 
 namespace CodeIgniter\Log;
 
-use Psr\Log\LoggerInterface;
 use CodeIgniter\Log\Exceptions\LogException;
+use Psr\Log\LoggerInterface;
 
 /**
  * The CodeIgntier Logger
@@ -57,13 +58,6 @@ use CodeIgniter\Log\Exceptions\LogException;
  */
 class Logger implements LoggerInterface
 {
-
-	/**
-	 * Path to save log files to.
-	 *
-	 * @var string
-	 */
-	protected $logPath;
 
 	/**
 	 * Used by the logThreshold Config setting to define
@@ -473,37 +467,51 @@ class Logger implements LoggerInterface
 		return strtr($message, $replace);
 	}
 
-	//--------------------------------------------------------------------
-
 	/**
-	 * Determines the current file/line that the log method was called from.
-	 * by analyzing the backtrace.
+	 * Determines the file and line that the logging call
+	 * was made from by analyzing the backtrace.
+	 * Find the earliest stack frame that is part of our logging system.
 	 *
 	 * @return array
 	 */
 	public function determineFile(): array
 	{
-		// Determine the file and line by finding the first
-		// backtrace that is not part of our logging system.
-		$trace = debug_backtrace();
-		$file  = null;
-		$line  = null;
+		$logFunctions = [
+			'log_message',
+			'log',
+			'error',
+			'debug',
+			'info',
+			'warning',
+			'critical',
+			'emergency',
+			'alert',
+			'notice',
+		];
 
-		foreach ($trace as $row)
+		// Generate Backtrace info
+		$trace = \debug_backtrace(false);
+
+		// So we search from the bottom (earliest) of the stack frames
+		$stackFrames = \array_reverse($trace);
+
+		// Find the first reference to a Logger class method
+		foreach ($stackFrames as $frame)
 		{
-			if (in_array($row['function'], ['interpolate', 'determineFile', 'log', 'log_message']))
+			if (\in_array($frame['function'], $logFunctions))
 			{
-				continue;
+				$file = isset($frame['file']) ? $this->cleanFileNames($frame['file']) : 'unknown';
+				$line = $frame['line'] ?? 'unknown';
+				return [
+					$file,
+					$line,
+				];
 			}
-
-			$file = $row['file'] ?? isset($row['object']) ? get_class($row['object']) : 'unknown';
-			$line = $row['line'] ?? $row['function'] ?? 'unknown';
-			break;
 		}
 
 		return [
-			$file,
-			$line,
+			'unknown',
+			'unknown',
 		];
 	}
 
@@ -525,9 +533,8 @@ class Logger implements LoggerInterface
 	{
 		$file = str_replace(APPPATH, 'APPPATH/', $file);
 		$file = str_replace(SYSTEMPATH, 'SYSTEMPATH/', $file);
-		$file = str_replace(FCPATH, 'FCPATH/', $file);
 
-		return $file;
+		return str_replace(FCPATH, 'FCPATH/', $file);
 	}
 
 	//--------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 use Config\Modules;
 
-class FileLocatorTest extends \CIUnitTestCase
+class FileLocatorTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	/**
 	 * @var \CodeIgniter\Autoloader\FileLocator
@@ -11,7 +11,7 @@ class FileLocatorTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -22,8 +22,8 @@ class FileLocatorTest extends \CIUnitTestCase
 			'Tests/Support' => TESTPATH . '_support/',
 			'App'           => APPPATH,
 			'CodeIgniter'   => [
-				SYSTEMPATH,
 				TESTPATH,
+				SYSTEMPATH,
 			],
 			'Errors'        => APPPATH . 'Views/errors',
 			'System'        => SUPPORTPATH . 'Autoloader/system',
@@ -131,6 +131,15 @@ class FileLocatorTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testLocateFileNotFoundExistingNamespace()
+	{
+		$file = '\App\Views/unexistence-file.php';
+
+		$this->assertFalse($this->locator->locateFile($file, 'Views'));
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testLocateFileNotFoundWithBadNamespace()
 	{
 		$file = '\Blogger\admin/posts.php';
@@ -170,7 +179,6 @@ class FileLocatorTest extends \CIUnitTestCase
 		$this->assertContains($expected, $foundFiles);
 
 		$expected = SYSTEMPATH . 'index.html';
-
 		$this->assertContains($expected, $foundFiles);
 	}
 
@@ -181,6 +189,27 @@ class FileLocatorTest extends \CIUnitTestCase
 		$foundFiles = $this->locator->search('Views/Fake.html');
 
 		$this->assertArrayNotHasKey(0, $foundFiles);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSearchPrioritizeSystemOverApp()
+	{
+		$foundFiles = $this->locator->search('Language/en/Validation.php', 'php', false);
+
+		$this->assertEquals([
+			SYSTEMPATH . 'Language/en/Validation.php',
+			APPPATH . 'Language/en/Validation.php',
+		],
+			$foundFiles
+		);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testListNamespaceFilesEmptyPrefixAndPath()
+	{
+		$this->assertEmpty($this->locator->listNamespaceFiles('', ''));
 	}
 
 	//--------------------------------------------------------------------

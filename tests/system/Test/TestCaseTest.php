@@ -2,14 +2,14 @@
 namespace CodeIgniter\Test;
 
 use CodeIgniter\Events\Events;
-use CodeIgniter\Test\Filters\CITestStreamFilter;
 use CodeIgniter\HTTP\Response;
+use CodeIgniter\Test\Filters\CITestStreamFilter;
 use Config\App;
 
-class TestCaseTest extends \CIUnitTestCase
+class TestCaseTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	//  protected function tearDown()
+	//  protected function tearDown(): void
 	//  {
 	//      $buffer = ob_clean();
 	//      if (ob_get_level() > 0)

@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,8 +39,8 @@
 
 namespace CodeIgniter\View;
 
-use CodeIgniter\Log\Logger;
 use CodeIgniter\View\Exceptions\ViewException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Parser
@@ -92,13 +93,13 @@ class Parser extends View
 	/**
 	 * Constructor
 	 *
-	 * @param \Config\View $config
-	 * @param string       $viewPath
-	 * @param mixed        $loader
-	 * @param boolean      $debug
-	 * @param Logger       $logger
+	 * @param \Config\View    $config
+	 * @param string          $viewPath
+	 * @param mixed           $loader
+	 * @param boolean         $debug
+	 * @param LoggerInterface $logger
 	 */
-	public function __construct($config, string $viewPath = null, $loader = null, bool $debug = null, Logger $logger = null)
+	public function __construct($config, string $viewPath = null, $loader = null, bool $debug = null, LoggerInterface $logger = null)
 	{
 		// Ensure user plugins override core plugins.
 		$this->plugins = $config->plugins ?? [];
@@ -128,12 +129,13 @@ class Parser extends View
 			$saveData = $this->config->saveData;
 		}
 
-		$view = str_replace('.php', '', $view);
+		$fileExt = pathinfo($view, PATHINFO_EXTENSION);
+		$view    = empty($fileExt) ? $view . '.php' : $view; // allow Views as .html, .tpl, etc (from CI3)
 
 		// Was it cached?
 		if (isset($options['cache']))
 		{
-			$cacheName = $options['cache_name'] ?: $view;
+			$cacheName = $options['cache_name'] ?? str_replace('.php', '', $view);
 
 			if ($output = cache($cacheName))
 			{
@@ -142,7 +144,6 @@ class Parser extends View
 			}
 		}
 
-		$view = $view . '.php';
 		$file = $this->viewPath . $view;
 
 		if (! is_file($file))
@@ -156,20 +157,25 @@ class Parser extends View
 			throw ViewException::forInvalidFile($file);
 		}
 
+		if (is_null($this->tempData))
+		{
+			$this->tempData = $this->data;
+		}
+
 		$template = file_get_contents($file);
-		$output   = $this->parse($template, $this->data, $options);
+		$output   = $this->parse($template, $this->tempData, $options);
 		$this->logPerformance($start, microtime(true), $view);
 
-		if (! $saveData)
+		if ($saveData)
 		{
-			$this->data = [];
+			$this->data = $this->tempData;
 		}
 		// Should we cache?
 		if (isset($options['cache']))
 		{
 			cache()->save($cacheName, $output, (int) $options['cache']);
 		}
-
+		$this->tempData = null;
 		return $output;
 	}
 
@@ -195,14 +201,22 @@ class Parser extends View
 			$saveData = $this->config->saveData;
 		}
 
-		$output = $this->parse($template, $this->data, $options);
+		if (is_null($this->tempData))
+		{
+			$this->tempData = $this->data;
+		}
+
+		$output = $this->parse($template, $this->tempData, $options);
 
 		$this->logPerformance($start, microtime(true), $this->excerpt($template));
 
-		if (! $saveData)
+		if ($saveData)
 		{
-			$this->data = [];
+			$this->data = $this->tempData;
 		}
+
+		$this->tempData = null;
+
 		return $output;
 	}
 
@@ -242,7 +256,8 @@ class Parser extends View
 			}
 		}
 
-		$this->data = array_merge($this->data, $data);
+		$this->tempData = $this->tempData ?? $this->data;
+		$this->tempData = array_merge($this->tempData, $data);
 
 		return $this;
 	}
@@ -255,9 +270,10 @@ class Parser extends View
 	 * Parses pseudo-variables contained in the specified template,
 	 * replacing them with the data in the second param
 	 *
-	 * @param  string $template
-	 * @param  array  $data
-	 * @param  array  $options  Future options
+	 * @param string $template
+	 * @param array  $data
+	 * @param array  $options  Future options
+	 *
 	 * @return string
 	 */
 	protected function parse(string $template, array $data = [], array $options = null): string
@@ -303,9 +319,7 @@ class Parser extends View
 			}
 		}
 
-		$template = $this->insertNoparse($template);
-
-		return $template;
+		return $this->insertNoparse($template);
 	}
 
 	//--------------------------------------------------------------------
@@ -319,7 +333,7 @@ class Parser extends View
 	 */
 	protected function parseSingle(string $key, string $val): array
 	{
-		$pattern = '#' . $this->leftDelimiter . '!?\s*' . preg_quote($key) . '\s*\|*\s*([|a-zA-Z0-9<>=\(\),:_\-\s\+]+)*\s*!?' . $this->rightDelimiter . '#ms';
+		$pattern = '#' . $this->leftDelimiter . '!?\s*' . preg_quote($key) . '\s*\|*\s*([|\w<>=\(\),:.\-\s\+\\\\/]+)*\s*!?' . $this->rightDelimiter . '#ms';
 
 		return [$pattern => $val];
 	}
@@ -401,7 +415,7 @@ class Parser extends View
 						$val = 'Resource';
 					}
 
-					$temp['#' . $this->leftDelimiter . '!?\s*' . preg_quote($key) . '\s*\|*\s*([|\w<>=\(\),:_\-\s\+]+)*\s*!?' . $this->rightDelimiter . '#s'] = $val;
+					$temp['#' . $this->leftDelimiter . '!?\s*' . preg_quote($key) . '\s*\|*\s*([|\w<>=\(\),:.\-\s\+\\\\/]+)*\s*!?' . $this->rightDelimiter . '#s'] = $val;
 				}
 
 				// Now replace our placeholders with the new content.
@@ -413,7 +427,10 @@ class Parser extends View
 				$str .= $out;
 			}
 
-			$replace['#' . $match[0] . '#s'] = $str;
+			//Escape | character from filters as it's handled as OR in regex
+			$escaped_match = preg_replace('/(?<!\\\\)\\|/', '\\|', $match[0]);
+
+			$replace['#' . $escaped_match . '#s'] = $str;
 		}
 
 		return $replace;
@@ -529,7 +546,14 @@ class Parser extends View
 
 		// Parse the PHP itself, or insert an error so they can debug
 		ob_start();
-		extract($this->data);
+
+		if (is_null($this->tempData))
+		{
+			$this->tempData = $this->data;
+		}
+
+		extract($this->tempData);
+
 		try
 		{
 			eval('?>' . $template . '<?php ');
@@ -539,6 +563,7 @@ class Parser extends View
 			ob_end_clean();
 			throw ViewException::forTagSyntaxError(str_replace(['?>', '<?php '], '', $template));
 		}
+
 		return ob_get_clean();
 	}
 
@@ -617,9 +642,7 @@ class Parser extends View
 			}
 		}
 
-		$replace = $this->applyFilters($replace, $filters);
-
-		return $replace;
+		return $this->applyFilters($replace, $filters);
 	}
 
 	//--------------------------------------------------------------------
@@ -682,7 +705,7 @@ class Parser extends View
 		foreach ($filters as $filter)
 		{
 			// Grab any parameter we might need to send
-			preg_match('/\([a-zA-Z0-9\-:_ +,<>=]+\)/', $filter, $param);
+			preg_match('/\([\w<>=\/\\\,:.\-\s\+]+\)/', $filter, $param);
 
 			// Remove the () and spaces to we have just the parameter left
 			$param = ! empty($param) ? trim($param[0], '() ') : null;
@@ -761,28 +784,19 @@ class Parser extends View
 			{
 				$params = [];
 
-				// Split on "words", but keep quoted groups together, accounting for escaped quotes.
-				// Note: requires double quotes, not single quotes.
-				$parts = str_getcsv($match[1], ' ');
-
-				foreach ($parts as $part)
+				preg_match_all('/([\w-]+=\"[^"]+\")|([\w-]+=[^\"\s=]+)|(\"[^"]+\")|(\S+)/', trim($match[1]), $matchesParams);
+				foreach ($matchesParams[0] as $item)
 				{
-					if (empty($part))
+					$keyVal = explode('=', $item);
+					if (count($keyVal) === 2)
 					{
-						continue;
-					}
-
-					if (strpos($part, '=') !== false)
-					{
-						list($a, $b) = explode('=', $part);
-						$params[$a]  = $b;
+						$params[$keyVal[0]] = str_replace('"', '', $keyVal[1]);
 					}
 					else
 					{
-						$params[] = $part;
+						$params[] = str_replace('"', '', $item);
 					}
 				}
-				unset($parts);
 
 				$template = $isPair ? str_replace($match[0], $callable($match[2], $params), $template) : str_replace($match[0], $callable($params), $template);
 			}

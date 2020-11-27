@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -93,7 +94,7 @@ class Session implements SessionInterface
 	 *
 	 * @var string
 	 */
-	protected $sessionSavePath = null;
+	protected $sessionSavePath;
 
 	/**
 	 * Whether to match the user's IP address when reading the session data.
@@ -198,9 +199,11 @@ class Session implements SessionInterface
 	{
 		if (is_cli() && ENVIRONMENT !== 'testing')
 		{
+			// @codeCoverageIgnoreStart
 			$this->logger->debug('Session: Initialization under CLI aborted.');
 
 			return;
+			// @codeCoverageIgnoreEnd
 		}
 		elseif ((bool) ini_get('session.auto_start'))
 		{
@@ -304,7 +307,8 @@ class Session implements SessionInterface
 				$this->sessionExpiration, $this->cookiePath, $this->cookieDomain, $this->cookieSecure, true // HTTP only; Yes, this is intentional and not configurable for security reasons.
 		);
 
-		if (empty($this->sessionExpiration))
+		//if (empty($this->sessionExpiration))
+		if (! isset($this->sessionExpiration))
 		{
 			$this->sessionExpiration = (int) ini_get('session.gc_maxlifetime');
 		}
@@ -495,13 +499,13 @@ class Session implements SessionInterface
 	 */
 	public function get(string $key = null)
 	{
-		if (! empty($key) && $value = dot_array_search($key, $_SESSION))
+		if (! empty($key) && (! is_null($value = isset($_SESSION[$key]) ? $_SESSION[$key] : null) || ! is_null($value = dot_array_search($key, $_SESSION ?? []))))
 		{
 			return $value;
 		}
 		elseif (empty($_SESSION))
 		{
-			return [];
+			return $key === null ? [] : null;
 		}
 
 		if (! empty($key))
@@ -553,7 +557,7 @@ class Session implements SessionInterface
 	public function push(string $key, array $data)
 	{
 		if ($this->has($key) && is_array($value = $this->get($key)))
-			   {
+		{
 			$this->set($key, array_merge($value, $data));
 		}
 	}
@@ -622,6 +626,22 @@ class Session implements SessionInterface
 		}
 
 		return null;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Magic method to check for session variables.
+	 * Different from has() in that it will validate 'session_id' as well.
+	 * Mostly used by internal PHP functions, users should stick to has()
+	 *
+	 * @param string $key Identifier of the session property to remove.
+	 *
+	 * @return boolean
+	 */
+	public function __isset(string $key): bool
+	{
+		return isset($_SESSION[$key]) || ($key === 'session_id');
 	}
 
 	//--------------------------------------------------------------------
@@ -703,9 +723,9 @@ class Session implements SessionInterface
 	{
 		if (is_array($key))
 		{
-			for ($i = 0, $c = count($key); $i < $c; $i ++)
+			foreach ($key as $sessionKey)
 			{
-				if (! isset($_SESSION[$key[$i]]))
+				if (! isset($_SESSION[$sessionKey]))
 				{
 					return false;
 				}
@@ -981,7 +1001,9 @@ class Session implements SessionInterface
 			return;
 		}
 
+		// @codeCoverageIgnoreStart
 		session_start();
+		// @codeCoverageIgnoreEnd
 	}
 
 	//--------------------------------------------------------------------

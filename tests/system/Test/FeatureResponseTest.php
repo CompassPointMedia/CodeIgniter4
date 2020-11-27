@@ -1,10 +1,10 @@
 <?php
 
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Test\FeatureResponse;
-use CodeIgniter\HTTP\RedirectResponse;
 
-class FeatureResponseTest extends CIUnitTestCase
+class FeatureResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -17,7 +17,7 @@ class FeatureResponseTest extends CIUnitTestCase
 	 */
 	protected $response;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 	}
@@ -122,6 +122,22 @@ class FeatureResponseTest extends CIUnitTestCase
 		$this->feature->assertRedirect();
 	}
 
+	public function testGetRedirectUrlReturnsUrl()
+	{
+		$this->getFeatureResponse('<h1>Hello World</h1>');
+		$this->feature->response = new RedirectResponse(new Config\App());
+		$this->feature->response->redirect('foo/bar');
+
+		$this->assertEquals('foo/bar', $this->feature->getRedirectUrl());
+	}
+
+	public function testGetRedirectUrlReturnsNull()
+	{
+		$this->getFeatureResponse('<h1>Hello World</h1>');
+
+		$this->assertNull($this->feature->getRedirectUrl());
+	}
+
 	public function testAssertStatus()
 	{
 		$this->getFeatureResponse('<h1>Hello World</h1>', ['statusCode' => 201]);
@@ -211,15 +227,47 @@ class FeatureResponseTest extends CIUnitTestCase
 		$this->assertEquals($formatter->format(['foo' => 'bar']), $this->feature->getJSON());
 	}
 
-	public function testInvalidJSON()
+	public function testEmptyJSON()
 	{
 		$this->getFeatureResponse('<h1>Hello World</h1>');
-		$this->response->setJSON('');
+		$this->response->setJSON('', true);
 		$config    = new \Config\Format();
 		$formatter = $config->getFormatter('application/json');
 
-		// this should fail because of empty JSON
-		$this->assertFalse($this->feature->getJSON());
+		// this should be "" - json_encode('');
+		$this->assertEquals('""', $this->feature->getJSON());
+	}
+
+	public function testFalseJSON()
+	{
+		$this->getFeatureResponse('<h1>Hello World</h1>');
+		$this->response->setJSON(false, true);
+		$config    = new \Config\Format();
+		$formatter = $config->getFormatter('application/json');
+
+		// this should be FALSE - json_encode(false)
+		$this->assertEquals('false', $this->feature->getJSON());
+	}
+
+	public function testTrueJSON()
+	{
+		$this->getFeatureResponse('<h1>Hello World</h1>');
+		$this->response->setJSON(true, true);
+		$config    = new \Config\Format();
+		$formatter = $config->getFormatter('application/json');
+
+		// this should be TRUE - json_encode(true)
+		$this->assertEquals('true', $this->feature->getJSON());
+	}
+
+	public function testInvalidJSON()
+	{
+		$tmp = ' test " case ';
+		$this->getFeatureResponse('<h1>Hello World</h1>');
+		$this->response->setBody($tmp);
+
+		// this should be FALSE - invalid JSON - will see if this is working that way ;-)
+		$this->assertFalse($this->response->getBody() === $this->feature->getJSON());
 	}
 
 	public function testGetXML()

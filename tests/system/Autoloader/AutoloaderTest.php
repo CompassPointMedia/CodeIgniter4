@@ -3,7 +3,7 @@
 use Config\Autoload;
 use Config\Modules;
 
-class AutoloaderTest extends \CIUnitTestCase
+class AutoloaderTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	/**
 	 * @var \CodeIgniter\Autoloader\Autoloader
@@ -14,7 +14,7 @@ class AutoloaderTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -122,12 +122,11 @@ class AutoloaderTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	/**
-	 * @expectedException        \InvalidArgumentException
-	 * @expectedExceptionMessage Config array must contain either the 'psr4' key or the 'classmap' key.
-	 */
 	public function testInitializeException()
 	{
+		$this->expectException('InvalidArgumentException');
+		$this->expectExceptionMessage("Config array must contain either the 'psr4' key or the 'classmap' key.");
+
 		$config                           = new Autoload();
 		$config->classmap                 = [];
 		$config->psr4                     = [];
@@ -212,6 +211,16 @@ class AutoloaderTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testSanitizationAllowUnicodeChars()
+	{
+		$test     = 'Ä/path/to/some/file.php_';
+		$expected = 'Ä/path/to/some/file.php';
+
+		$this->assertEquals($expected, $this->loader->sanitizeFilename($test));
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testSanitizationAllowsWindowsFilepaths()
 	{
 		$test = 'C:\path\to\some/file.php';
@@ -231,6 +240,24 @@ class AutoloaderTest extends \CIUnitTestCase
 		$this->loader->initialize($config, $moduleConfig);
 
 		$namespaces = $this->loader->getNamespace();
-		$this->assertArrayHasKey('Zend\\Escaper', $namespaces);
+		$this->assertArrayHasKey('Laminas\\Escaper', $namespaces);
+	}
+
+	public function testFindsComposerRoutesWithComposerPathNotFound()
+	{
+		$composerPath = COMPOSER_PATH;
+
+		$config                           = new Autoload();
+		$moduleConfig                     = new Modules();
+		$moduleConfig->discoverInComposer = true;
+
+		$this->loader = new Autoloader();
+
+		rename(COMPOSER_PATH, COMPOSER_PATH . '.backup');
+		$this->loader->initialize($config, $moduleConfig);
+		rename(COMPOSER_PATH . '.backup', $composerPath);
+
+		$namespaces = $this->loader->getNamespace();
+		$this->assertArrayNotHasKey('Laminas\\Escaper', $namespaces);
 	}
 }

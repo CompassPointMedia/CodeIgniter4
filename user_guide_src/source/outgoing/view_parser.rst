@@ -67,7 +67,7 @@ What It Does
 ============
 
 The ``Parser`` class processes "PHP/HTML scripts" stored in the application's view path.
-These scripts have a ``.php`` extension, but can not contain any PHP.
+These scripts can not contain any PHP.
 
 Each view parameter (which we refer to as a pseudo-variable) triggers a substitution,
 based on the type of value you provided for it. Pseudo-variables are not
@@ -99,7 +99,9 @@ View parameters are passed to ``setData()`` as an associative
 array of data to be replaced in the template. In the above example, the
 template would contain two variables: {blog_title} and {blog_heading}
 The first parameter to ``render()`` contains the name of the :doc:`view
-file </outgoing/views>` (in this example the file would be called blog_template.php),
+file </outgoing/views>`, Where *blog_template* is the name of your view file.
+
+.. important:: If the file extension is omitted, then the views are expected to end with the .php extension.
 
 Parser Configuration Options
 ============================
@@ -255,7 +257,7 @@ A ``blog_template`` that might work for the above::
 	{blog_entry}
 		<div>
 			<h2>{title}</h2>
-			<p>{body}{/p}
+			<p>{body}</p>
 		</div>
 	{/blog_entry}
 
@@ -274,7 +276,7 @@ comments in a ``{#  #}`` symbols.
 	{blog_entry}
 		<div>
 			<h2>{title}</h2>
-			<p>{body}{/p}
+			<p>{body}</p>
 		</div>
 	{/blog_entry}
 
@@ -360,7 +362,7 @@ Escaping Data
 =============
 
 By default, all variable substitution is escaped to help prevent XSS attacks on your pages. CodeIgniter's ``esc`` method
-supports several different contexts, like general **html**, when it's in an HTML **attr*, in **css**, etc. If nothing
+supports several different contexts, like general **html**, when it's in an HTML **attr**, in **css**, etc. If nothing
 else is specified, the data will be assumed to be in an HTML context. You can specify the context used by using the **esc**
 filter::
 
@@ -425,7 +427,7 @@ The following filters are available when using the parser:
 +---------------+---------------------+--------------------------------------------------------------+-------------------------------------+
 + highlight_code+                     + Highlights code samples with HTML/CSS.                       + { v|highlight_code }                +
 +---------------+---------------------+--------------------------------------------------------------+-------------------------------------+
-+ limit_chars   + limit               + Limits the number of chracters to $limit.                    + { v|limit_chars(100) }              +
++ limit_chars   + limit               + Limits the number of characters to $limit.                   + { v|limit_chars(100) }              +
 +---------------+---------------------+--------------------------------------------------------------+-------------------------------------+
 + limit_words   + limit               + Limits the number of words to $limit.                        + { v|limit_words(20) }               +
 +---------------+---------------------+--------------------------------------------------------------+-------------------------------------+
@@ -460,7 +462,7 @@ The following filters are available when using the parser:
 +               +                     +                                                              +                                     +
 +---------------+---------------------+--------------------------------------------------------------+-------------------------------------+
 
-See `PHP's NumberFormatter <http://php.net/manual/en/numberformatter.create.php>`_ for details relevant to the
+See `PHP's NumberFormatter <https://www.php.net/manual/en/numberformatter.create.php>`_ for details relevant to the
 "local_number" filter.
 
 Custom Filters
@@ -519,8 +521,8 @@ The following plugins are available when using the parser:
 ==================== ========================== ================================================================================== ================================================================
 Plugin               Arguments                  Description                                                           			   Example
 ==================== ========================== ================================================================================== ================================================================
-currentURL                                      Alias for the current_url helper function.                                         {+ currentURL +}
-previousURL                                     Alias for the previous_url helper function.                           		       {+ previousURL +}
+current_url                                     Alias for the current_url helper function.                                         {+ current_url +}
+previous_url                                    Alias for the previous_url helper function.                           		       {+ previous_url +}
 siteURL                                         Alias for the site_url helper function.                                            {+ siteURL "login" +}
 mailto               email, title, attributes   Alias for the mailto helper function.                                 		       {+ mailto email=foo@example.com title="Stranger Things" +}
 safe_mailto          email, title, attributes   Alias for the safe_mailto helper function.                            		       {+ safe_mailto email=foo@example.com title="Stranger Things" +}
@@ -669,17 +671,17 @@ using a view fragment::
 		['title' => 'Second Link', 'link' => '/second'],
 	];
 
-	foreach ($data1 as $menuitem)
+	foreach ($data1 as $menuItem)
 	{
-		$temp .= $parser->setData($menuItem)->renderString();
+		$temp .= $parser->setData($menuItem)->renderString($template1);
 	}
 
-	$template = '<ul>{menuitems}</ul>';
+	$template2 = '<ul>{menuitems}</ul>';
 	$data = [
 		'menuitems' => $temp
 	];
 	echo $parser->setData($data)
-	             ->renderString($template);
+	             ->renderString($template2);
 
 Result::
 

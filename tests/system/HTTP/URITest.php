@@ -1,19 +1,21 @@
 <?php
 namespace CodeIgniter\HTTP;
 
+use CodeIgniter\Config\Services;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
+use Config\App;
 
-class URITest extends \CIUnitTestCase
+class URITest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 	}
 
 	//--------------------------------------------------------------------
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 	}
 
@@ -47,6 +49,7 @@ class URITest extends \CIUnitTestCase
 		$this->assertEquals('path', $uri->getSegment(1));
 		$this->assertEquals('to', $uri->getSegment(2));
 		$this->assertEquals('script', $uri->getSegment(3));
+		$this->assertEquals('', $uri->getSegment(4));
 
 		$this->assertEquals(3, $uri->getTotalSegments());
 	}
@@ -56,9 +59,66 @@ class URITest extends \CIUnitTestCase
 	public function testSegmentOutOfRange()
 	{
 		$this->expectException(HTTPException::class);
+		$uri = new URI('http://hostname/path/to/script');
+		$uri->getSegment(5);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSegmentOutOfRangeWithSilent()
+	{
 		$url = 'http://abc.com/a123/b/c';
 		$uri = new URI($url);
-		$uri->getSegment(22);
+		$this->assertEquals('', $uri->setSilent()->getSegment(22));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSegmentOutOfRangeWithDefaultValue()
+	{
+		$this->expectException(HTTPException::class);
+		$url = 'http://abc.com/a123/b/c';
+		$uri = new URI($url);
+		$uri->getSegment(22, 'something');
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSegmentOutOfRangeWithSilentAndDefaultValue()
+	{
+		$url = 'http://abc.com/a123/b/c';
+		$uri = new URI($url);
+		$this->assertEquals('something', $uri->setSilent()->getSegment(22, 'something'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSegmentsWithDefaultValueAndSilent()
+	{
+		$uri = new URI('http://hostname/path/to');
+		$uri->setSilent();
+
+		$this->assertEquals(['path', 'to'], $uri->getSegments());
+		$this->assertEquals('path', $uri->getSegment(1));
+		$this->assertEquals('to', $uri->getSegment(2, 'different'));
+		$this->assertEquals('script', $uri->getSegment(3, 'script'));
+		$this->assertEquals('', $uri->getSegment(3));
+
+		$this->assertEquals(2, $uri->getTotalSegments());
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSegmentOutOfRangeWithDefaultValuesAndSilent()
+	{
+		$uri = new URI('http://hostname/path/to/script');
+		$uri->setSilent();
+
+		$this->assertEquals('', $uri->getSegment(22));
+		$this->assertEquals('something', $uri->getSegment(33, 'something'));
+
+		$this->assertEquals(3, $uri->getTotalSegments());
+		$this->assertEquals(['path', 'to', 'script'], $uri->getSegments());
 	}
 
 	//--------------------------------------------------------------------
@@ -95,7 +155,7 @@ class URITest extends \CIUnitTestCase
 		$this->assertEquals('http://' . $url, (string) $uri);
 		$url = '/';
 		$uri = new URI($url);
-		$this->assertEquals('http://' . $url, (string) $uri);
+		$this->assertEquals('http://', (string) $uri);
 	}
 
 	//--------------------------------------------------------------------
@@ -219,6 +279,18 @@ class URITest extends \CIUnitTestCase
 		$this->expectException(HTTPException::class);
 		$this->expectExceptionMessage(lang('HTTP.invalidPort', ['70000']));
 		$uri->setPort(70000);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSetPortInvalidValuesSilent()
+	{
+		$url = 'http://example.com/path';
+		$uri = new URI($url);
+
+		$uri->setSilent()->setPort(70000);
+
+		$this->assertEquals(null, $uri->getPort());
 	}
 
 	//--------------------------------------------------------------------
@@ -366,6 +438,18 @@ class URITest extends \CIUnitTestCase
 
 		$this->expectException(HTTPException::class);
 		$uri->setQuery('?key=value#fragment');
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSetQueryThrowsErrorWhenFragmentPresentSilent()
+	{
+		$url = 'http://example.com/path';
+		$uri = new URI($url);
+
+		$uri->setSilent()->setQuery('?key=value#fragment');
+
+		$this->assertEquals('', $uri->getQuery());
 	}
 
 	//--------------------------------------------------------------------
@@ -779,6 +863,119 @@ class URITest extends \CIUnitTestCase
 
 		$uri = new URI($base);
 		$uri->setSegment(6, 'banana');
+	}
+
+	public function testSetBadSegmentSilent()
+	{
+		$base = 'http://example.com/foo/bar/baz';
+
+		$uri = new URI($base);
+
+		$segments = $uri->getSegments();
+		$uri->setSilent()->setSegment(6, 'banana');
+
+		$this->assertEquals($segments, $uri->getSegments());
+	}
+
+	//--------------------------------------------------------------------
+	// Exploratory testing, investigating https://github.com/codeigniter4/CodeIgniter4/issues/2016
+
+	public function testBasedNoIndex()
+	{
+		Services::reset();
+
+		$_SERVER['HTTP_HOST']   = 'example.com';
+		$_SERVER['REQUEST_URI'] = '/ci/v4/controller/method';
+
+		$config            = new App();
+		$config->baseURL   = 'http://example.com/ci/v4';
+		$config->indexPage = 'index.php';
+		$request           = Services::request($config);
+		$request->uri      = new URI('http://example.com/ci/v4/controller/method');
+
+		Services::injectMock('request', $request);
+
+		// going through request
+		$this->assertEquals('http://example.com/ci/v4/controller/method', (string) $request->uri);
+		$this->assertEquals('/ci/v4/controller/method', $request->uri->getPath());
+
+		// standalone
+		$uri = new URI('http://example.com/ci/v4/controller/method');
+		$this->assertEquals('http://example.com/ci/v4/controller/method', (string) $uri);
+		$this->assertEquals('/ci/v4/controller/method', $uri->getPath());
+
+		$this->assertEquals($uri->getPath(), $request->uri->getPath());
+	}
+
+	public function testBasedWithIndex()
+	{
+		Services::reset();
+
+		$_SERVER['HTTP_HOST']   = 'example.com';
+		$_SERVER['REQUEST_URI'] = '/ci/v4/index.php/controller/method';
+
+		$config            = new App();
+		$config->baseURL   = 'http://example.com/ci/v4';
+		$config->indexPage = 'index.php';
+		$request           = Services::request($config);
+		$request->uri      = new URI('http://example.com/ci/v4/index.php/controller/method');
+
+		Services::injectMock('request', $request);
+
+		// going through request
+		$this->assertEquals('http://example.com/ci/v4/index.php/controller/method', (string) $request->uri);
+		$this->assertEquals('/ci/v4/index.php/controller/method', $request->uri->getPath());
+
+		// standalone
+		$uri = new URI('http://example.com/ci/v4/index.php/controller/method');
+		$this->assertEquals('http://example.com/ci/v4/index.php/controller/method', (string) $uri);
+		$this->assertEquals('/ci/v4/index.php/controller/method', $uri->getPath());
+
+		$this->assertEquals($uri->getPath(), $request->uri->getPath());
+	}
+
+	public function testZeroAsURIPath()
+	{
+		$url = 'http://example.com/0';
+		$uri = new URI($url);
+		$this->assertEquals($url, (string) $uri);
+		$this->assertEquals('/0', $uri->getPath());
+	}
+
+	public function testEmptyURIPath()
+	{
+		$url = 'http://example.com/';
+		$uri = new URI($url);
+		$this->assertEquals([], $uri->getSegments());
+		$this->assertEquals(0, $uri->getTotalSegments());
+	}
+
+	public function testSetURI()
+	{
+		$url = ':';
+		$uri = new URI();
+
+		$this->expectException(HTTPException::class);
+		$this->expectExceptionMessage(lang('HTTP.cannotParseURI', [$url]));
+
+		$uri->setURI($url);
+	}
+
+	public function testSetURISilent()
+	{
+		$url = ':';
+		$uri = new URI();
+		$uri->setSilent()->setURI($url);
+
+		$this->assertTrue(true);
+	}
+
+	public function testCreateURIString()
+	{
+		$expected = 'https://example.com/';
+		$uri      = URI::createURIString('https', 'example.com/', '/');
+
+		$this->assertEquals($expected, $uri);
 	}
 
 }

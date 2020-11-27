@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -86,6 +87,42 @@ class Result extends BaseResult implements ResultInterface
 	 */
 	public function getFieldData(): array
 	{
+		static $data_types = [
+			MYSQLI_TYPE_DECIMAL     => 'decimal',
+			MYSQLI_TYPE_NEWDECIMAL  => 'newdecimal',
+			MYSQLI_TYPE_FLOAT       => 'float',
+			MYSQLI_TYPE_DOUBLE      => 'double',
+			
+			MYSQLI_TYPE_BIT         => 'bit',
+			MYSQLI_TYPE_TINY        => 'tiny',
+			MYSQLI_TYPE_SHORT       => 'short',
+			MYSQLI_TYPE_LONG        => 'long',
+			MYSQLI_TYPE_LONGLONG    => 'longlong',
+			MYSQLI_TYPE_INT24       => 'int24',
+			
+			MYSQLI_TYPE_YEAR        => 'year',
+			
+			MYSQLI_TYPE_TIMESTAMP   => 'timestamp',
+			MYSQLI_TYPE_DATE        => 'date',
+			MYSQLI_TYPE_TIME        => 'time',
+			MYSQLI_TYPE_DATETIME    => 'datetime',
+			MYSQLI_TYPE_NEWDATE     => 'newdate',
+			
+			MYSQLI_TYPE_INTERVAL    => 'interval',
+			MYSQLI_TYPE_SET         => 'set',
+			MYSQLI_TYPE_ENUM        => 'enum',
+			
+			MYSQLI_TYPE_VAR_STRING  => 'var_string',
+			MYSQLI_TYPE_STRING      => 'string',
+			MYSQLI_TYPE_CHAR        => 'char',
+			
+			MYSQLI_TYPE_GEOMETRY    => 'geometry',
+			MYSQLI_TYPE_TINY_BLOB   => 'tiny_blob',
+			MYSQLI_TYPE_MEDIUM_BLOB => 'medium_blob',
+			MYSQLI_TYPE_LONG_BLOB   => 'long_blob',
+			MYSQLI_TYPE_BLOB        => 'blob',
+		];
+		
 		$retVal    = [];
 		$fieldData = $this->resultID->fetch_fields();
 
@@ -94,8 +131,10 @@ class Result extends BaseResult implements ResultInterface
 			$retVal[$i]              = new \stdClass();
 			$retVal[$i]->name        = $data->name;
 			$retVal[$i]->type        = $data->type;
+			$retVal[$i]->type_name   = isset($data_types[$data->type]) ? $data_types[$data->type] : null;
 			$retVal[$i]->max_length  = $data->max_length;
 			$retVal[$i]->primary_key = (int) ($data->flags & 2);
+			$retVal[$i]->length      = $data->length;
 			$retVal[$i]->default     = $data->def;
 		}
 

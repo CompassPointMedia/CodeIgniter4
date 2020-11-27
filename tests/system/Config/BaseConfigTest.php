@@ -1,16 +1,14 @@
 <?php
 namespace CodeIgniter\Config;
 
-use CodeIgniter\Test\CIUnitTestCase;
-
-class BaseConfigTest extends CIUnitTestCase
+class BaseConfigTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected $fixturesFolder;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -23,6 +21,10 @@ class BaseConfigTest extends CIUnitTestCase
 		if (! class_exists('RegistrarConfig', false))
 		{
 			require $this->fixturesFolder . '/RegistrarConfig.php';
+		}
+		if (! class_exists('Encryption', false))
+		{
+			require $this->fixturesFolder . '/Encryption.php';
 		}
 	}
 
@@ -142,6 +144,36 @@ class BaseConfigTest extends CIUnitTestCase
 
 		$this->assertEquals('foo', $config->first);
 		$this->assertEquals('bar', $config->second);
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState  disabled
+	 */
+	public function testSetsDefaultValuesEncryption()
+	{
+		$dotenv = new DotEnv($this->fixturesFolder, 'encryption.env');
+		$dotenv->load();
+		$config = new \Encryption();
+
+		// override config with ENV var
+		$this->assertEquals('f699c7fd18a8e082d0228932f3acd40e1ef5ef92efcedda32842a211d62f0aa6', bin2hex($config->key));
+		$this->assertEquals('OpenSSL', $config->driver);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSetsDefaultValuesHex2Bin()
+	{
+		$dotenv = new DotEnv($this->fixturesFolder, 'commented.env');
+		$dotenv->load();
+		$config = new \Encryption();
+
+		// override config with ENV var
+		$this->assertEquals('84cf2c0811d5daf9e1c897825a3debce91f9a33391e639f72f7a4740b30675a2', bin2hex($config->key));
+		$this->assertEquals('MCrypt', $config->driver);
 	}
 
 	//--------------------------------------------------------------------

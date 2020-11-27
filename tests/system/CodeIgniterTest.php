@@ -1,14 +1,14 @@
 <?php namespace CodeIgniter;
 
-use Config\App;
-use Tests\Support\MockCodeIgniter;
-use CodeIgniter\Router\RouteCollection;
 use \CodeIgniter\Config\Services;
+use CodeIgniter\Router\RouteCollection;
+use CodeIgniter\Test\Mock\MockCodeIgniter;
+use Config\App;
 
 /**
  * @backupGlobals enabled
  */
-class CodeIgniterTest extends \CIUnitTestCase
+class CodeIgniterTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	/**
 	 * @var \CodeIgniter\CodeIgniter
@@ -19,7 +19,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -31,7 +31,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter = new MockCodeIgniter($config);
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 
@@ -39,23 +39,6 @@ class CodeIgniterTest extends \CIUnitTestCase
 		{
 			ob_end_clean();
 		}
-	}
-
-	//--------------------------------------------------------------------
-
-	public function testRunDefaultRoute()
-	{
-		$_SERVER['argv'] = [
-			'index.php',
-			'/',
-		];
-		$_SERVER['argc'] = 2;
-
-		ob_start();
-		$this->codeigniter->useSafeOutput(true)->run();
-		$output = ob_get_clean();
-
-		$this->assertContains('<h1>Welcome to CodeIgniter</h1>', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -71,7 +54,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains('<h1>Welcome to CodeIgniter</h1>', $output);
+		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -97,7 +80,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains('You want to see "about" page.', $output);
+		$this->assertStringContainsString('You want to see "about" page.', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -121,7 +104,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains('<h1>Welcome to CodeIgniter</h1>', $output);
+		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -147,7 +130,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run($routes);
 		$output = ob_get_clean();
 
-		$this->assertContains('404 Override by Closure.', $output);
+		$this->assertStringContainsString('404 Override by Closure.', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -173,7 +156,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains('You want to see "about" page.', $output);
+		$this->assertStringContainsString('You want to see "about" page.', $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -201,7 +184,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains("You want to see 'about' page.", $output);
+		$this->assertStringContainsString("You want to see 'about' page.", $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -237,7 +220,7 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains('<h1>Welcome to CodeIgniter</h1>', $output);
+		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
 	}
 
 	public function testTransfersCorrectHTTPVersion()
@@ -271,6 +254,180 @@ class CodeIgniterTest extends \CIUnitTestCase
 		$this->codeigniter->useSafeOutput(true)->run();
 		$output = ob_get_clean();
 
-		$this->assertContains('<h1>Welcome to CodeIgniter</h1>', $output);
+		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
 	}
+
+	//--------------------------------------------------------------------
+
+	public function testRunForceSecure()
+	{
+		$_SERVER['argv'] = [
+			'index.php',
+			'/',
+		];
+		$_SERVER['argc'] = 2;
+
+		$config                            = new App();
+		$config->forceGlobalSecureRequests = true;
+		$codeigniter                       = new MockCodeIgniter($config);
+
+		$this->getPrivateMethodInvoker($codeigniter, 'getRequestObject')();
+		$this->getPrivateMethodInvoker($codeigniter, 'getResponseObject')();
+
+		$response = $this->getPrivateProperty($codeigniter, 'response');
+		$this->assertNull($response->getHeader('Location'));
+
+		ob_start();
+		$codeigniter->useSafeOutput(true)->run();
+		$output = ob_get_clean();
+
+		$this->assertEquals('https://example.com', $response->getHeader('Location')->getValue());
+	}
+
+	public function testRunRedirectionWithNamed()
+	{
+		$_SERVER['argv']        = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']        = 2;
+		$_SERVER['REQUEST_URI'] = '/example';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->add('pages/named', function () {
+		}, ['as' => 'name']);
+		$routes->addRedirect('example', 'name');
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('http://example.com/pages/named', $response->getHeader('Location')->getValue());
+	}
+
+	public function testRunRedirectionWithURI()
+	{
+		$_SERVER['argv']        = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']        = 2;
+		$_SERVER['REQUEST_URI'] = '/example';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->add('pages/uri', function () {
+		});
+		$routes->addRedirect('example', 'pages/uri');
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('http://example.com/pages/uri', $response->getHeader('Location')->getValue());
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3041
+	 */
+	public function testRunRedirectionWithURINotSet()
+	{
+		$_SERVER['argv']        = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']        = 2;
+		$_SERVER['REQUEST_URI'] = '/example';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->addRedirect('example', 'pages/notset');
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('http://example.com/pages/notset', $response->getHeader('Location')->getValue());
+	}
+
+	public function testRunRedirectionWithHTTPCode303()
+	{
+		$_SERVER['argv']            = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']            = 2;
+		$_SERVER['REQUEST_URI']     = '/example';
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+		$_SERVER['REQUEST_METHOD']  = 'POST';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->addRedirect('example', 'pages/notset', 301);
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('303', $response->getStatusCode());
+	}
+
+	public function testRunRedirectionWithHTTPCode301()
+	{
+		$_SERVER['argv']            = [
+			'index.php',
+			'example',
+		];
+		$_SERVER['argc']            = 2;
+		$_SERVER['REQUEST_URI']     = '/example';
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+		$_SERVER['REQUEST_METHOD']  = 'GET';
+
+		// Inject mock router.
+		$routes = Services::routes();
+		$routes->addRedirect('example', 'pages/notset', 301);
+
+		$router = Services::router($routes, Services::request());
+		Services::injectMock('router', $router);
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		ob_get_clean();
+		$response = $this->getPrivateProperty($this->codeigniter, 'response');
+		$this->assertEquals('301', $response->getStatusCode());
+	}
+
+	/**
+	 * The method after all test, reset Servces:: config
+	 * Can't use static::tearDownAfterClass. This will cause a buffer exception
+	 * need improve
+	 */
+	public function testRunDefaultRoute()
+	{
+		$_SERVER['argv'] = [
+			'index.php',
+			'/',
+		];
+		$_SERVER['argc'] = 2;
+
+		ob_start();
+		$this->codeigniter->useSafeOutput(true)->run();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString('Welcome to CodeIgniter', $output);
+	}
+
 }

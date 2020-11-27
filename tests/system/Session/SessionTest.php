@@ -1,17 +1,17 @@
 <?php namespace CodeIgniter\Session;
 
-use Config\Logger;
-use Tests\Support\Log\TestLogger;
-use Tests\Support\Session\MockSession;
 use CodeIgniter\Session\Handlers\FileHandler;
+use CodeIgniter\Test\Mock\MockSession;
+use CodeIgniter\Test\TestLogger;
+use Config\Logger;
 
 /**
  * @runTestsInSeparateProcesses
  * @preserveGlobalState         disabled
  */
-class SessionTest extends \CIUnitTestCase
+class SessionTest extends \CodeIgniter\Test\CIUnitTestCase
 {
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -19,7 +19,7 @@ class SessionTest extends \CIUnitTestCase
 		$_SESSION = [];
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 	}
 
@@ -129,6 +129,40 @@ class SessionTest extends \CIUnitTestCase
 		$this->assertNull($session->get('foo'));
 	}
 
+	public function testGetReturnsNullWhenNotFoundWithXmlHttpRequest()
+	{
+		$_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
+		$_SESSION                         = [];
+
+		$session = $this->getInstance();
+		$session->start();
+
+		$this->assertNull($session->get('foo'));
+	}
+
+	public function testGetReturnsEmptyArrayWhenWithXmlHttpRequest()
+	{
+		$_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
+		$_SESSION                         = [];
+
+		$session = $this->getInstance();
+		$session->start();
+
+		$this->assertEquals([], $session->get());
+	}
+
+	public function testGetReturnsItemValueisZero()
+	{
+		$_SESSION = [];
+
+		$session = $this->getInstance();
+		$session->start();
+
+		$session->set('foo', (int) 0);
+
+		$this->assertSame((int) 0, $session->get('foo'));
+	}
+
 	public function testGetReturnsAllWithNoKeys()
 	{
 		$_SESSION = [
@@ -183,6 +217,26 @@ class SessionTest extends \CIUnitTestCase
 		$_SESSION['foo'] = 'bar';
 
 		$this->assertFalse($session->has('bar'));
+	}
+
+	public function testIssetReturnsTrueOnSuccess()
+	{
+		$session = $this->getInstance();
+		$session->start();
+
+		$_SESSION['foo'] = 'bar';
+
+		$this->assertTrue(isset($session->foo));
+	}
+
+	public function testIssetReturnsFalseOnNotFound()
+	{
+		$session = $this->getInstance();
+		$session->start();
+
+		$_SESSION['foo'] = 'bar';
+
+		$this->assertFalse(isset($session->bar));
 	}
 
 	public function testPushNewValueIntoArraySessionValue()
@@ -477,5 +531,15 @@ class SessionTest extends \CIUnitTestCase
 		$session->set('baz', 'ballywhoo');
 
 		$this->assertEquals(['foo', 'bar'], $session->getTempKeys());
+	}
+
+	public function testGetDotKey()
+	{
+		$session = $this->getInstance();
+		$session->start();
+
+		$session->set('test.1', 'value');
+
+		$this->assertEquals('value', $session->get('test.1'));
 	}
 }

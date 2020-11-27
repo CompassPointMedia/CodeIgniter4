@@ -9,7 +9,7 @@ use Config\App;
  *
  * @backupGlobals enabled
  */
-class CLIRequestTest extends \CIUnitTestCase
+class CLIRequestTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -17,7 +17,7 @@ class CLIRequestTest extends \CIUnitTestCase
 	 */
 	protected $request;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -164,7 +164,7 @@ class CLIRequestTest extends \CIUnitTestCase
 		$this->request = new CLIRequest(new App());
 
 		$expectedOptions = '-foo bar -baz "queue some stuff"';
-		$expectedPath    = 'users/21';
+		$expectedPath    = 'users/21/pro-file';
 		$this->assertEquals($expectedOptions, $this->request->getOptionString());
 		$this->assertEquals($expectedPath, $this->request->getPath());
 	}
@@ -376,7 +376,7 @@ class CLIRequestTest extends \CIUnitTestCase
 		$result = $this->request->fetchGlobal('post');
 
 		$this->assertEquals($post, $result);
-		$this->assertInternalType('array', $result['ANNOUNCEMENTS']);
+		$this->assertIsArray($result['ANNOUNCEMENTS']);
 		$this->assertCount(2, $result['ANNOUNCEMENTS']);
 	}
 
@@ -478,7 +478,6 @@ class CLIRequestTest extends \CIUnitTestCase
 		];
 		$this->request->setGlobal('post', $post);
 
-		//      echo var_dump($this->request->fetchGlobal('post', 'clients[][zipcode]'));
 		$this->assertEquals($expected, $this->request->fetchGlobal('post', 'clients[]'));
 	}
 

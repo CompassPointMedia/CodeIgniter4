@@ -1,16 +1,15 @@
 <?php
 namespace CodeIgniter\Encryption;
 
-use Config\Services;
-use CodeIgniter\Config\BaseConfig;
 use Config\Encryption as EncryptionConfig;
+use Config\Services;
 
 //use CodeIgniter\Encryption\Encryption;
 
-class EncryptionTest extends \CIUnitTestCase
+class EncryptionTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	public function setUp()
+	public function setUp(): void
 	{
 		$this->encryption = new \CodeIgniter\Encryption\Encryption();
 	}
@@ -41,11 +40,11 @@ class EncryptionTest extends \CIUnitTestCase
 
 	/**
 	 * Covers behavior with invalid parameters
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testBadDriver()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		// ask for a bad driver
 		$config         = new EncryptionConfig();
 		$config->driver = 'Bogus';
@@ -56,11 +55,11 @@ class EncryptionTest extends \CIUnitTestCase
 
 	/**
 	 * Covers behavior with invalid parameters
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testMissingDriver()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		// ask for a bad driver
 		$config         = new EncryptionConfig();
 		$config->driver = '';
@@ -78,11 +77,6 @@ class EncryptionTest extends \CIUnitTestCase
 		$this->assertEquals(16, strlen($this->encryption->createKey(16)));
 	}
 
-	public function testBogusProperty()
-	{
-		$this->assertNull($this->encryption->bogus);
-	}
-
 	// --------------------------------------------------------------------
 
 	public function testServiceSuccess()
@@ -95,11 +89,10 @@ class EncryptionTest extends \CIUnitTestCase
 		$this->assertInstanceOf(EncrypterInterface::class, $encrypter);
 	}
 
-	/**
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
-	 */
 	public function testServiceFailure()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		// ask for a bad driver
 		$config         = new EncryptionConfig();
 		$config->driver = 'Kazoo';
@@ -108,11 +101,10 @@ class EncryptionTest extends \CIUnitTestCase
 		$encrypter = Services::encrypter($config);
 	}
 
-	/**
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
-	 */
 	public function testServiceWithoutKey()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		$encrypter = Services::encrypter();
 	}
 
@@ -127,6 +119,28 @@ class EncryptionTest extends \CIUnitTestCase
 		$config->key = 'Abracadabra';
 		$encrypter   = Services::encrypter($config, true);
 		$this->assertEquals('anything', $encrypter->key);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testMagicIssetTrue()
+	{
+		$this->assertTrue(isset($this->encryption->digest));
+	}
+
+	public function testMagicIssetFalse()
+	{
+		$this->assertFalse(isset($this->encryption->bogus));
+	}
+
+	public function testMagicGet()
+	{
+		$this->assertEquals('SHA512', $this->encryption->digest);
+	}
+
+	public function testMagicGetMissing()
+	{
+		$this->assertNull($this->encryption->bogus);
 	}
 
 }

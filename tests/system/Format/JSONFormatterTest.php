@@ -1,10 +1,10 @@
 <?php namespace CodeIgniter\Format;
 
-class JSONFormatterTest extends \CIUnitTestCase
+class JSONFormatterTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $jsonFormatter;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 		$this->jsonFormatter = new JSONFormatter();
@@ -49,11 +49,10 @@ class JSONFormatterTest extends \CIUnitTestCase
 		$this->assertEquals($expected, $this->jsonFormatter->format($data));
 	}
 
-	/**
-	 * @expectedException RuntimeException
-	 */
 	public function testJSONError()
 	{
+		$this->expectException('RuntimeException');
+
 		$data     = ["\xB1\x31"];
 		$expected = 'Boom';
 		$this->assertEquals($expected, $this->jsonFormatter->format($data));

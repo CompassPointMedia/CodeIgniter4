@@ -3,16 +3,16 @@ namespace CodeIgniter\HTTP;
 
 use Config\App;
 
-class ResponseCookieTest extends \CIUnitTestCase
+class ResponseCookieTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 		$this->server = $_SERVER;
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		$_SERVER = $this->server;
 	}

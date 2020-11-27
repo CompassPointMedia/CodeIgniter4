@@ -2,12 +2,9 @@
 namespace CodeIgniter\Events;
 
 use CodeIgniter\Config\Config;
-use Config\Logger;
-use Config\Services;
-use Tests\Support\Events\MockEvents;
-use Tests\Support\Log\TestLogger;
+use CodeIgniter\Test\Mock\MockEvents;
 
-class EventsTest extends \CIUnitTestCase
+class EventsTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -15,7 +12,7 @@ class EventsTest extends \CIUnitTestCase
 	 */
 	protected $manager;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

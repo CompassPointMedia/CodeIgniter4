@@ -1,15 +1,15 @@
 <?php
 namespace Config;
 
-use Tests\Support\HTTP\MockResponse;
+use CodeIgniter\Test\Mock\MockResponse;
 
-class ServicesTest extends \CIUnitTestCase
+class ServicesTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected $config;
 	protected $original;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -20,7 +20,7 @@ class ServicesTest extends \CIUnitTestCase
 		//      $this->config->supportedLocales = ['en', 'es'];
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		$_SERVER = $this->original;
 	}
@@ -53,6 +53,18 @@ class ServicesTest extends \CIUnitTestCase
 	{
 		$actual = Services::curlrequest();
 		$this->assertInstanceOf(\CodeIgniter\HTTP\CURLRequest::class, $actual);
+	}
+
+	public function testNewEmail()
+	{
+		$actual = Services::email();
+		$this->assertInstanceOf(\CodeIgniter\Email\Email::class, $actual);
+	}
+
+	public function testNewUnsharedEmail()
+	{
+		$actual = Services::email(null, true);
+		$this->assertInstanceOf(\CodeIgniter\Email\Email::class, $actual);
 	}
 
 	public function testNewExceptions()
@@ -315,6 +327,13 @@ class ServicesTest extends \CIUnitTestCase
 	{
 		$result = Services::typography();
 		$this->assertInstanceOf(\CodeIgniter\Typography\Typography::class, $result);
+	}
+
+	public function testServiceInstance()
+	{
+		rename(COMPOSER_PATH, COMPOSER_PATH . '.backup');
+		$this->assertInstanceOf(\Config\Services::class, new \Config\Services());
+		rename(COMPOSER_PATH . '.backup', COMPOSER_PATH);
 	}
 
 }

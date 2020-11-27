@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -91,7 +92,7 @@ class RedirectResponse extends Response
 			throw HTTPException::forInvalidRedirectRoute($route);
 		}
 
-		return $this->redirect(base_url($route), $method, $code);
+		return $this->redirect(site_url($route), $method, $code);
 	}
 
 	/**
@@ -155,6 +156,65 @@ class RedirectResponse extends Response
 		$session = $this->ensureSession();
 
 		$session->setFlashdata($key, $message);
+
+		return $this;
+	}
+
+	/**
+	 * Copies any cookies from the global Response instance
+	 * into this RedirectResponse. Useful when you've just
+	 * set a cookie but need ensure that's actually sent
+	 * with the response instead of lost.
+	 *
+	 * @return $this|RedirectResponse
+	 */
+	public function withCookies()
+	{
+		$cookies = service('response')->getCookies();
+
+		if (empty($cookies))
+		{
+			return $this;
+		}
+
+		foreach ($cookies as $cookie)
+		{
+			$this->setCookie(
+				$cookie['name'],
+				$cookie['value'],
+				$cookie['expires'],
+				$cookie['domain'],
+				$cookie['path'],
+				'', // prefix
+				$cookie['secure'],
+				$cookie['httponly']
+			);
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Copies any headers from the global Response instance
+	 * into this RedirectResponse. Useful when you've just
+	 * set a header be need to ensure its actually sent
+	 * with the redirect response.
+	 *
+	 * @return $this|RedirectResponse
+	 */
+	public function withHeaders()
+	{
+		$headers = service('response')->getHeaders();
+
+		if (empty($headers))
+		{
+			return $this;
+		}
+
+		foreach ($headers as $name => $header)
+		{
+			$this->setHeader($name, $header->getValue());
+		}
 
 		return $this;
 	}

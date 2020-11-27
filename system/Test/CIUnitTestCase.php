@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,10 +39,12 @@
 
 namespace CodeIgniter\Test;
 
-use Config\Paths;
 use CodeIgniter\Events\Events;
+use CodeIgniter\Session\Handlers\ArrayHandler;
+use CodeIgniter\Test\Mock\MockEmail;
+use CodeIgniter\Test\Mock\MockSession;
+use Config\Services;
 use PHPUnit\Framework\TestCase;
-use Tests\Support\Log\TestLogger;
 
 /**
  * PHPunit test case.
@@ -56,7 +59,38 @@ class CIUnitTestCase extends TestCase
 	 */
 	protected $app;
 
-	protected function setUp()
+	/**
+	 * Methods to run during setUp.
+	 *
+	 * @var array of methods
+	 */
+	protected $setUpMethods = [
+		'mockEmail',
+		'mockSession',
+	];
+
+	/**
+	 * Methods to run during tearDown.
+	 *
+	 * @var array of methods
+	 */
+	protected $tearDownMethods = [];
+
+	//--------------------------------------------------------------------
+	// Staging
+	//--------------------------------------------------------------------
+
+	/**
+	 * Load the helpers.
+	 */
+	public static function setUpBeforeClass(): void
+	{
+		parent::setUpBeforeClass();
+
+		helper(['url', 'test']);
+	}
+
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -65,8 +99,50 @@ class CIUnitTestCase extends TestCase
 			$this->app = $this->createApplication();
 		}
 
-		helper('url');
+		foreach ($this->setUpMethods as $method)
+		{
+			$this->$method();
+		}
 	}
+
+	protected function tearDown(): void
+	{
+		parent::tearDown();
+
+		foreach ($this->tearDownMethods as $method)
+		{
+			$this->$method();
+		}
+	}
+
+	//--------------------------------------------------------------------
+	// Mocking
+	//--------------------------------------------------------------------
+
+	/**
+	 * Injects the mock session driver into Services
+	 */
+	protected function mockSession()
+	{
+		$_SESSION = [];
+
+		$config  = config('App');
+		$session = new MockSession(new ArrayHandler($config, '0.0.0.0'), $config);
+
+		Services::injectMock('session', $session);
+	}
+
+	/**
+	 * Injects the mock email driver so no emails really send
+	 */
+	protected function mockEmail()
+	{
+		Services::injectMock('email', new MockEmail(config('Email')));
+	}
+
+	//--------------------------------------------------------------------
+	// Assertions
+	//--------------------------------------------------------------------
 
 	/**
 	 * Custom function to hook into CodeIgniter's Logging mechanism
@@ -237,6 +313,10 @@ class CIUnitTestCase extends TestCase
 		}
 	}
 
+	//--------------------------------------------------------------------
+	// Utility
+	//--------------------------------------------------------------------
+
 	/**
 	 * Loads up an instance of CodeIgniter
 	 * and gets the environment setup.
@@ -245,21 +325,17 @@ class CIUnitTestCase extends TestCase
 	 */
 	protected function createApplication()
 	{
-		$paths = new Paths();
-
 		return require realpath(__DIR__ . '/../') . '/bootstrap.php';
 	}
 
-	//--------------------------------------------------------------------
 	/**
 	 * Return first matching emitted header.
 	 *
-	 * @param string $header Identifier of the header of interest
-	 * @param bool $ignoreCase
+	 * @param string  $header     Identifier of the header of interest
+	 * @param boolean $ignoreCase
 	 *
 	 * @return string|null The value of the header found, null if not found
 	 */
-		//
 	protected function getHeaderEmitted(string $header, bool $ignoreCase = false): ?string
 	{
 		$found = false;
@@ -282,5 +358,4 @@ class CIUnitTestCase extends TestCase
 
 		return null;
 	}
-
 }

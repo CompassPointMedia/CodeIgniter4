@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,7 +39,7 @@
 namespace CodeIgniter\Test;
 
 use CodeIgniter\HTTP\RedirectResponse;
-use CodeIgniter\HTTP\Response;
+use CodeIgniter\HTTP\ResponseInterface;
 use Config\Format;
 use PHPUnit\Framework\TestCase;
 
@@ -51,7 +52,7 @@ class FeatureResponse extends TestCase
 	/**
 	 * The response.
 	 *
-	 * @var \CodeIgniter\HTTP\Response
+	 * @var \CodeIgniter\HTTP\ResponseInterface
 	 */
 	public $response;
 
@@ -65,9 +66,9 @@ class FeatureResponse extends TestCase
 	/**
 	 * Constructor.
 	 *
-	 * @param Response $response
+	 * @param ResponseInterface $response
 	 */
-	public function __construct(Response $response = null)
+	public function __construct(ResponseInterface $response = null)
 	{
 		$this->response = $response;
 
@@ -90,15 +91,17 @@ class FeatureResponse extends TestCase
 	 */
 	public function isOK(): bool
 	{
+		$status = $this->response->getStatusCode();
+
 		// Only 200 and 300 range status codes
 		// are considered valid.
-		if ($this->response->getStatusCode() >= 400 || $this->response->getStatusCode() < 200)
+		if ($status >= 400 || $status < 200)
 		{
 			return false;
 		}
 
-		// Empty bodies are not considered valid.
-		if (empty($this->response->getBody()))
+		// Empty bodies are not considered valid, unless in redirects
+		if ($status < 300 && empty($this->response->getBody()))
 		{
 			return false;
 		}
@@ -124,6 +127,30 @@ class FeatureResponse extends TestCase
 	public function assertRedirect()
 	{
 		$this->assertTrue($this->isRedirect(), 'Response is not a RedirectResponse.');
+	}
+
+	/**
+	 * Returns the URL set for redirection.
+	 *
+	 * @return string|null
+	 */
+	public function getRedirectUrl(): ?string
+	{
+		if (! $this->isRedirect())
+		{
+			return null;
+		}
+
+		if ($this->response->hasHeader('Location'))
+		{
+			return $this->response->getHeaderLine('Location');
+		}
+		elseif ($this->response->hasHeader('Refresh'))
+		{
+			return str_replace('0;url=', '', $this->response->getHeaderLine('Refresh'));
+		}
+
+		return null;
 	}
 
 	/**

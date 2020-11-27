@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,20 +39,20 @@
 namespace CodeIgniter;
 
 use Closure;
-use CodeIgniter\Filters\Exceptions\FilterException;
+use CodeIgniter\Debug\Timer;
+use CodeIgniter\Events\Events;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\DownloadResponse;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\Request;
-use CodeIgniter\HTTP\ResponseInterface;
-use Config\Services;
-use Config\Cache;
-use CodeIgniter\HTTP\URI;
-use CodeIgniter\Debug\Timer;
-use CodeIgniter\Events\Events;
 use CodeIgniter\HTTP\Response;
-use CodeIgniter\HTTP\CLIRequest;
+use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\HTTP\URI;
+use CodeIgniter\Router\Exceptions\RedirectException;
 use CodeIgniter\Router\RouteCollectionInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
+use Config\Cache;
+use Config\Services;
 use Exception;
 
 /**
@@ -65,7 +66,7 @@ class CodeIgniter
 	/**
 	 * The current version of CodeIgniter Framework
 	 */
-	const CI_VERSION = '4.0.0-rc.1';
+	const CI_VERSION = '4.0.4';
 
 	/**
 	 * App startup time.
@@ -179,20 +180,86 @@ class CodeIgniter
 	 */
 	public function initialize()
 	{
+		// Set default locale on the server
+		locale_set_default($this->config->defaultLocale ?? 'en');
+
 		// Set default timezone on the server
 		date_default_timezone_set($this->config->appTimezone ?? 'UTC');
+
+		// Define environment variables
+		$this->detectEnvironment();
+		$this->bootstrapEnvironment();
 
 		// Setup Exception Handling
 		Services::exceptions()
 				->initialize();
 
-		$this->detectEnvironment();
-		$this->bootstrapEnvironment();
+		$this->initializeKint();
 
-		if (CI_DEBUG)
+		if (! CI_DEBUG)
 		{
-			require_once SYSTEMPATH . 'ThirdParty/Kint/kint.php';
+			// @codeCoverageIgnoreStart
+			\Kint::$enabled_mode = false;
+			// @codeCoverageIgnoreEnd
 		}
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Initializes Kint
+	 */
+	protected function initializeKint()
+	{
+		// If we have KINT_DIR it means it's already loaded via composer
+		if (! defined('KINT_DIR'))
+		{
+			spl_autoload_register(function ($class) {
+				$class = explode('\\', $class);
+
+				if ('Kint' !== array_shift($class))
+				{
+					return;
+				}
+
+				$file = SYSTEMPATH . 'ThirdParty/Kint/' . implode('/', $class) . '.php';
+
+				file_exists($file) && require_once $file;
+			});
+
+			require_once SYSTEMPATH . 'ThirdParty/Kint/init.php';
+		}
+
+		/**
+		 * Config\Kint
+		 */
+		$config = config('Config\Kint');
+
+		\Kint::$max_depth           = $config->maxDepth;
+		\Kint::$display_called_from = $config->displayCalledFrom;
+		\Kint::$expanded            = $config->expanded;
+
+		if (! empty($config->plugins) && is_array($config->plugins))
+		{
+			\Kint::$plugins = $config->plugins;
+		}
+
+		\Kint\Renderer\RichRenderer::$theme  = $config->richTheme;
+		\Kint\Renderer\RichRenderer::$folder = $config->richFolder;
+		\Kint\Renderer\RichRenderer::$sort   = $config->richSort;
+		if (! empty($config->richObjectPlugins) && is_array($config->richObjectPlugins))
+		{
+			\Kint\Renderer\RichRenderer::$object_plugins = $config->richObjectPlugins;
+		}
+		if (! empty($config->richTabPlugins) && is_array($config->richTabPlugins))
+		{
+			\Kint\Renderer\RichRenderer::$tab_plugins = $config->richTabPlugins;
+		}
+
+		\Kint\Renderer\CliRenderer::$cli_colors         = $config->cliColors;
+		\Kint\Renderer\CliRenderer::$force_utf8         = $config->cliForceUTF8;
+		\Kint\Renderer\CliRenderer::$detect_width       = $config->cliDetectWidth;
+		\Kint\Renderer\CliRenderer::$min_terminal_width = $config->cliMinWidth;
 	}
 
 	//--------------------------------------------------------------------
@@ -209,7 +276,7 @@ class CodeIgniter
 	 * @param boolean                                      $returnResponse
 	 *
 	 * @return boolean|\CodeIgniter\HTTP\RequestInterface|\CodeIgniter\HTTP\Response|\CodeIgniter\HTTP\ResponseInterface|mixed
-	 * @throws \CodeIgniter\Filters\Exceptions\FilterException
+	 * @throws \CodeIgniter\Router\Exceptions\RedirectException
 	 * @throws \Exception
 	 */
 	public function run(RouteCollectionInterface $routes = null, bool $returnResponse = false)
@@ -244,14 +311,16 @@ class CodeIgniter
 		{
 			return $this->handleRequest($routes, $cacheConfig, $returnResponse);
 		}
-		catch (FilterException $e)
+		catch (RedirectException $e)
 		{
 			$logger = Services::logger();
 			$logger->info('REDIRECTED ROUTE at ' . $e->getMessage());
 
 			// If the route is a 'redirect' route, it throws
 			// the exception with the $to as the message
-			$this->response->redirect($e->getMessage(), 'auto', $e->getCode());
+			$this->response->redirect(base_url($e->getMessage()), 'auto', $e->getCode());
+			$this->sendResponse();
+
 			$this->callExit(EXIT_SUCCESS);
 		}
 		catch (PageNotFoundException $e)
@@ -370,7 +439,7 @@ class CodeIgniter
 
 		// Save our current URI as the previous URI in the session
 		// for safer, more accurate use with `previous_url()` helper function.
-		$this->storePreviousURL($this->request->uri ?? $uri);
+		$this->storePreviousURL((string)current_url(true));
 
 		unset($uri);
 
@@ -433,9 +502,11 @@ class CodeIgniter
 		}
 		else
 		{
+			// @codeCoverageIgnoreStart
 			header('HTTP/1.1 503 Service Unavailable.', true, 503);
 			echo 'The application environment is not set correctly.';
 			exit(1); // EXIT_ERROR
+			// @codeCoverageIgnoreEnd
 		}
 	}
 
@@ -487,9 +558,11 @@ class CodeIgniter
 			return;
 		}
 
-		if (is_cli() && ! (ENVIRONMENT === 'testing'))
+		if (is_cli() && ENVIRONMENT !== 'testing')
 		{
+			// @codeCoverageIgnoreStart
 			$this->request = Services::clirequest($this->config);
+			// @codeCoverageIgnoreEnd
 		}
 		else
 		{
@@ -684,9 +757,7 @@ class CodeIgniter
 	{
 		$this->totalTime = $this->benchmark->getElapsedTime('total_execution');
 
-		$output = str_replace('{elapsed_time}', $this->totalTime, $output);
-
-		return $output;
+		return str_replace('{elapsed_time}', $this->totalTime, $output);
 	}
 
 	//--------------------------------------------------------------------
@@ -835,13 +906,16 @@ class CodeIgniter
 	 */
 	protected function runController($class)
 	{
+		// If this is a console request then use the input segments as parameters
+		$params = defined('SPARKED') ? $this->request->getSegments() : $this->router->params();
+
 		if (method_exists($class, '_remap'))
 		{
-			$output = $class->_remap($this->method, ...$this->router->params());
+			$output = $class->_remap($this->method, ...$params);
 		}
 		else
 		{
-			$output = $class->{$this->method}(...$this->router->params());
+			$output = $class->{$this->method}(...$params);
 		}
 
 		$this->benchmark->stop('controller');
@@ -880,7 +954,8 @@ class CodeIgniter
 				$this->runController($controller);
 			}
 
-			$this->gatherOutput();
+			$cacheConfig = new Cache();
+			$this->gatherOutput($cacheConfig);
 			$this->sendResponse();
 
 			return;
@@ -891,10 +966,12 @@ class CodeIgniter
 
 		if (ENVIRONMENT !== 'testing')
 		{
+			// @codeCoverageIgnoreStart
 			if (ob_get_level() > 0)
 			{
 				ob_end_flush();
 			}
+			// @codeCoverageIgnoreEnd
 		}
 		else
 		{
@@ -905,7 +982,7 @@ class CodeIgniter
 			}
 		}
 
-		throw PageNotFoundException::forPageNotFound($e->getMessage());
+		throw PageNotFoundException::forPageNotFound(ENVIRONMENT !== 'production' || is_cli() ? $e->getMessage() : '');
 	}
 
 	//--------------------------------------------------------------------
@@ -1043,7 +1120,9 @@ class CodeIgniter
 	 */
 	protected function callExit($code)
 	{
+		// @codeCoverageIgnoreStart
 		exit($code);
+		// @codeCoverageIgnoreEnd
 	}
 
 	//--------------------------------------------------------------------

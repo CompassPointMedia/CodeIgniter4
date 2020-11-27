@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,8 +39,8 @@
 
 namespace CodeIgniter\Database;
 
-use CodeIgniter\Events\Events;
 use CodeIgniter\Database\Exceptions\DatabaseException;
+use CodeIgniter\Events\Events;
 
 /**
  * Class BaseConnection
@@ -372,8 +373,15 @@ abstract class BaseConnection implements ConnectionInterface
 
 		$this->connectTime = microtime(true);
 
-		// Connect to the database and set the connection ID
-		$this->connID = $this->connect($this->pConnect);
+		try
+		{
+			// Connect to the database and set the connection ID
+			$this->connID = $this->connect($this->pConnect);
+		}
+		catch (\Throwable $e)
+		{
+			log_message('error', 'Error connecting to the database: ' . $e->getMessage());
+		}
 
 		// No connection resource? Check if there is a failover else throw an error
 		if (! $this->connID)
@@ -393,8 +401,15 @@ abstract class BaseConnection implements ConnectionInterface
 						}
 					}
 
-					// Try to connect
-					$this->connID = $this->connect($this->pConnect);
+					try
+					{
+						// Try to connect
+						$this->connID = $this->connect($this->pConnect);
+					}
+					catch (\Throwable $e)
+					{
+						log_message('error', 'Error connecting to the database: ' . $e->getMessage());
+					}
 
 					// If a connection is made break the foreach loop
 					if ($this->connID)
@@ -515,12 +530,29 @@ abstract class BaseConnection implements ConnectionInterface
 	//--------------------------------------------------------------------
 
 	/**
-	 * Returns the last error encountered by this connection.
+	 * Set DB Prefix
 	 *
-	 * @return mixed
+	 * Set's the DB Prefix to something new without needing to reconnect
+	 *
+	 * @param string $prefix The prefix
+	 *
+	 * @return string
 	 */
-	public function getError()
+	public function setPrefix(string $prefix = ''): string
 	{
+		return $this->DBPrefix = $prefix;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Returns the database prefix.
+	 *
+	 * @return string
+	 */
+	public function getPrefix(): string
+	{
+		return $this->DBPrefix;
 	}
 
 	//--------------------------------------------------------------------
@@ -973,7 +1005,7 @@ abstract class BaseConnection implements ConnectionInterface
 			$this->initialize();
 		}
 
-		$this->pretend(true);
+		$this->pretend();
 
 		$sql = $func($this);
 
@@ -1025,9 +1057,9 @@ abstract class BaseConnection implements ConnectionInterface
 	 *
 	 * Used by the Debug Toolbar's timeline.
 	 *
-	 * @return float
+	 * @return float|null
 	 */
-	public function getConnectStart(): float
+	public function getConnectStart(): ?float
 	{
 		return $this->connectTime;
 	}
@@ -1186,7 +1218,7 @@ abstract class BaseConnection implements ConnectionInterface
 				// This can happen when this function is being called from a JOIN.
 				if ($fieldExists === false)
 				{
-					$i ++;
+					$i++;
 				}
 
 				// Verify table prefix and replace if necessary
@@ -1330,22 +1362,6 @@ abstract class BaseConnection implements ConnectionInterface
 	//--------------------------------------------------------------------
 
 	/**
-	 * Set DB Prefix
-	 *
-	 * Set's the DB Prefix to something new without needing to reconnect
-	 *
-	 * @param string $prefix The prefix
-	 *
-	 * @return string
-	 */
-	public function setPrefix(string $prefix = ''): string
-	{
-		return $this->DBPrefix = $prefix;
-	}
-
-	//--------------------------------------------------------------------
-
-	/**
 	 * Returns the total number of rows affected by this query.
 	 *
 	 * @return mixed
@@ -1368,9 +1384,7 @@ abstract class BaseConnection implements ConnectionInterface
 	{
 		if (is_array($str))
 		{
-			$str = array_map([&$this, 'escape'], $str);
-
-			return $str;
+			return array_map([&$this, 'escape'], $str);
 		}
 		else if (is_string($str) || ( is_object($str) && method_exists($str, '__toString')))
 		{
@@ -1516,7 +1530,9 @@ abstract class BaseConnection implements ConnectionInterface
 		// Is there a cached result?
 		if (isset($this->dataCache['table_names']) && $this->dataCache['table_names'])
 		{
-			return $this->dataCache['table_names'];
+			return $constrainByPrefix ?
+				preg_grep("/^{$this->DBPrefix}/", $this->dataCache['table_names'])
+				: $this->dataCache['table_names'];
 		}
 
 		if (false === ($sql = $this->_listTables($constrainByPrefix)))
@@ -1846,6 +1862,20 @@ abstract class BaseConnection implements ConnectionInterface
 		}
 
 		return null;
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Checker for properties existence.
+	 *
+	 * @param string $key
+	 *
+	 * @return boolean
+	 */
+	public function __isset(string $key): bool
+	{
+		return property_exists($this, $key);
 	}
 
 	//--------------------------------------------------------------------

@@ -9,6 +9,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +31,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -42,7 +43,7 @@ namespace CodeIgniter\HTTP;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
 use CodeIgniter\HTTP\Files\FileCollection;
 use CodeIgniter\HTTP\Files\UploadedFile;
-use CodeIgniter\Config\Services;
+use Config\Services;
 
 /**
  * Class IncomingRequest
@@ -165,7 +166,7 @@ class IncomingRequest extends Request
 			$body = file_get_contents('php://input');
 		}
 
-		$this->body      = $body;
+		$this->body      = ! empty($body) ? $body : null;
 		$this->config    = $config;
 		$this->userAgent = $userAgent;
 
@@ -173,6 +174,11 @@ class IncomingRequest extends Request
 
 		$this->populateHeaders();
 
+		// Get our current URI.
+		// NOTE: This WILL NOT match the actual URL in the browser since for
+		// everything this cares about (and the router, etc) is the portion
+		// AFTER the script name. So, if hosted in a sub-folder this will
+		// appear different than actual URL. If you need that, use current_url().
 		$this->uri = $uri;
 
 		$this->detectURI($config->uriProtocol, $config->baseURL);
@@ -288,8 +294,7 @@ class IncomingRequest extends Request
 	 */
 	public function isAJAX(): bool
 	{
-		return ( ! empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-				strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+		return $this->hasHeader('X-Requested-With') && strtolower($this->getHeader('X-Requested-With')->getValue()) === 'xmlhttprequest';
 	}
 
 	//--------------------------------------------------------------------
@@ -306,11 +311,11 @@ class IncomingRequest extends Request
 		{
 			return true;
 		}
-		elseif (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+		elseif ($this->hasHeader('X-Forwarded-Proto') && $this->getHeader('X-Forwarded-Proto')->getValue() === 'https')
 		{
 			return true;
 		}
-		elseif (! empty($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) !== 'off')
+		elseif ($this->hasHeader('Front-End-Https') && ! empty($this->getHeader('Front-End-Https')->getValue()) && strtolower($this->getHeader('Front-End-Https')->getValue()) !== 'off')
 		{
 			return true;
 		}
@@ -421,7 +426,7 @@ class IncomingRequest extends Request
 		// Use $_POST directly here, since filter_has_var only
 		// checks the initial POST data, not anything that might
 		// have been added since.
-		return isset($_POST[$index]) ? $this->getPost($index, $filter, $flags) : $this->getGet($index, $filter, $flags);
+		return isset($_POST[$index]) ? $this->getPost($index, $filter, $flags) : (isset($_GET[$index]) ? $this->getGet($index, $filter, $flags) : $this->getPost($index, $filter, $flags));
 	}
 
 	//--------------------------------------------------------------------
@@ -440,7 +445,7 @@ class IncomingRequest extends Request
 		// Use $_GET directly here, since filter_has_var only
 		// checks the initial GET data, not anything that might
 		// have been added since.
-		return isset($_GET[$index]) ? $this->getGet($index, $filter, $flags) : $this->getPost($index, $filter, $flags);
+		return isset($_GET[$index]) ? $this->getGet($index, $filter, $flags) : (isset($_POST[$index]) ? $this->getPost($index, $filter, $flags) : $this->getGet($index, $filter, $flags));
 	}
 
 	//--------------------------------------------------------------------
@@ -548,6 +553,26 @@ class IncomingRequest extends Request
 	//--------------------------------------------------------------------
 
 	/**
+	 * Verify if a file exist, by the name of the input field used to upload it, in the collection
+	 * of uploaded files and if is have been uploaded with multiple option.
+	 *
+	 * @param string $fileID
+	 *
+	 * @return array|null
+	 */
+	public function getFileMultiple(string $fileID)
+	{
+		if (is_null($this->files))
+		{
+			$this->files = new FileCollection();
+		}
+
+		return $this->files->getFileMultiple($fileID);
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
 	 * Retrieves a single file by the name of the input field used
 	 * to upload it.
 	 *
@@ -583,18 +608,13 @@ class IncomingRequest extends Request
 		// baseURL, so let's help them out.
 		$baseURL = ! empty($baseURL) ? rtrim($baseURL, '/ ') . '/' : $baseURL;
 
-		// Based on our baseURL provided by the developer (if set)
+		// Based on our baseURL provided by the developer
 		// set our current domain name, scheme
 		if (! empty($baseURL))
 		{
-			// We cannot add the path here, otherwise it's possible
-			// that the routing will not work correctly if we are
-			// within a sub-folder scheme. So it's modified in
-			// the
 			$this->uri->setScheme(parse_url($baseURL, PHP_URL_SCHEME));
 			$this->uri->setHost(parse_url($baseURL, PHP_URL_HOST));
 			$this->uri->setPort(parse_url($baseURL, PHP_URL_PORT));
-			$this->uri->resolveRelativeURI(parse_url($baseURL, PHP_URL_PATH));
 
 			// Ensure we have any query vars
 			$this->uri->setQuery($_SERVER['QUERY_STRING'] ?? '');
@@ -694,12 +714,13 @@ class IncomingRequest extends Request
 		}
 
 		// parse_url() returns false if no host is present, but the path or query string
-		// contains a colon followed by a number
+		// contains a colon followed by a number. So we attach a dummy host since
+		// REQUEST_URI does not include the host. This allows us to parse out the query string and path.
 		$parts = parse_url('http://dummy' . $_SERVER['REQUEST_URI']);
 		$query = $parts['query'] ?? '';
 		$uri   = $parts['path'] ?? '';
 
-		if (isset($_SERVER['SCRIPT_NAME'][0]))
+		if (isset($_SERVER['SCRIPT_NAME'][0]) && pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_EXTENSION) === 'php')
 		{
 			// strip the script name from the beginning of the URI
 			if (strpos($uri, $_SERVER['SCRIPT_NAME']) === 0)

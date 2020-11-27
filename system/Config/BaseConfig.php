@@ -9,6 +9,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +31,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -91,6 +92,12 @@ class BaseConfig
 		foreach ($properties as $property)
 		{
 			$this->initEnvValue($this->$property, $property, $prefix, $shortPrefix);
+
+			// Handle hex2bin prefix
+                      if ($shortPrefix === 'encryption' && $property === 'key' && strpos($this->$property, 'hex2bin:') === 0)
+			{
+				$this->$property = hex2bin(substr($this->$property, 8));
+			}
 		}
 
 		if (defined('ENVIRONMENT') && ENVIRONMENT !== 'testing')
@@ -107,7 +114,7 @@ class BaseConfig
 	/**
 	 * Initialization an environment-specific configuration setting
 	 *
-	 * @param mixed &$property
+	 * @param mixed  &$property
 	 * @param string $name
 	 * @param string $prefix
 	 * @param string $shortPrefix
@@ -163,16 +170,12 @@ class BaseConfig
 		{
 			case array_key_exists("{$shortPrefix}.{$property}", $_ENV):
 				return $_ENV["{$shortPrefix}.{$property}"];
-				break;
 			case array_key_exists("{$shortPrefix}.{$property}", $_SERVER):
 				return $_SERVER["{$shortPrefix}.{$property}"];
-				break;
 			case array_key_exists("{$prefix}.{$property}", $_ENV):
 				return $_ENV["{$prefix}.{$property}"];
-				break;
 			case array_key_exists("{$prefix}.{$property}", $_SERVER):
 				return $_SERVER["{$prefix}.{$property}"];
-				break;
 			default:
 				$value = getenv($property);
 				return $value === false ? null : $value;

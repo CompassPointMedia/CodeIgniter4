@@ -9,6 +9,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +31,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -40,9 +41,9 @@
 namespace CodeIgniter\Test;
 
 use CodeIgniter\HTTP\IncomingRequest;
-use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\UserAgent;
 use Config\App;
 use Config\Services;
 use InvalidArgumentException;
@@ -126,6 +127,11 @@ trait ControllerTester
 		if (empty($this->appConfig))
 		{
 			$this->appConfig = new App();
+		}
+
+		if (! $this->uri instanceof URI)
+		{
+			$this->uri = new URI($this->appConfig->baseURL ?? 'http://example.com');
 		}
 
 		if (empty($this->request))
@@ -244,6 +250,9 @@ trait ControllerTester
 	public function withRequest($request)
 	{
 		$this->request = $request;
+
+		// Make sure it's available for other classes
+		Services::injectMock('request', $request);
 
 		return $this;
 	}

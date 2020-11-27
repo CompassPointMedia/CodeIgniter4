@@ -32,14 +32,16 @@ directory in the main project root::
 
 Open **app/Config/Autoload.php** and add the **Acme** namespace to the ``psr4`` array property::
 
-    public $psr4 = [
-        'Acme' => ROOTPATH.'acme'
+    $psr4 = [
+        'Config'        => APPPATH . 'Config',
+        APP_NAMESPACE   => APPPATH,                // For custom namespace
+        'App'           => APPPATH,                // To ensure filters, etc still found,
+        'Acme'          => ROOTPATH.'acme'
     ];
 
-Now that this is setup we can access any file within the **acme** folder through the ``Acme`` namespace. This alone
-takes care of 80% of what is needed for modules to work, so you should be sure to familiarize yourself within namespaces
-and become comfortable with their use. A number of the file types will be scanned for automatically through all defined
-namespaces here, making this crucial to working with modules at all.
+Now that this is set up, we can access any file within the **acme** folder through the ``Acme`` namespace. This alone
+takes care of 80% of what is needed for modules to work, so you should be sure to familiarize yourself with namespaces
+and become comfortable with their use. Several file types will be scanned for automatically through all defined namespaces - a crucial ingredient for working with modules.
 
 A common directory structure within a module will mimic the main application folder::
 
@@ -76,13 +78,10 @@ file types, including:
 
 This is configured in the file **app/Config/Modules.php**.
 
-The auto-discovery system works by scanning any psr4 namespaces that have been defined within **Config/Autoload.php**
-for familiar directories/files.
+The auto-discovery system works by scanning for particular directories and files within psr4 namespaces that have been defined in **Config/Autoload.php**.
 
-When at the **acme** namespace above, we would need to make one small adjustment to make it so the files could be found:
-each "module" within the namespace would have to have it's own namespace defined there. **Acme** would be changed
-to **Acme\Blog**. Once your module folder has been defined, the discover process would look for a Routes file, for example,
-at **/acme/Blog/Config/Routes.php**, just as if it was another application.
+To make auto-discovery work for our **Blog** namespace, we need to make one small adjustment.
+**Acme** needs to be changed to **Acme\\Blog** because each "module" within the namespace needs to be fully defined. Once your module folder path is defined, the discovery process would look for discoverable items on that path and should, for example, find the routes file at **/acme/Blog/Config/Routes.php**.
 
 Enable/Disable Discover
 =======================

@@ -1,10 +1,10 @@
 <?php
 
+use CodeIgniter\Test\Mock\MockCache;
 use CodeIgniter\View\Cell;
 use CodeIgniter\View\Exceptions\ViewException;
-use Tests\Support\Cache\Handlers\MockHandler;
 
-class CellTest extends \CIUnitTestCase
+class CellTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected $cache;
@@ -16,11 +16,11 @@ class CellTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
-		$this->cache = new MockHandler();
+		$this->cache = new MockCache();
 		$this->cell  = new Cell($this->cache);
 	}
 
@@ -232,6 +232,21 @@ class CellTest extends \CIUnitTestCase
 		$this->assertEquals(implode(',', $expected), $this->cell->render('\Tests\Support\View\SampleClass::echobox', $params, 1, 'rememberme'));
 	}
 
+	public function testRenderCachedAutoName()
+	{
+		$params   = 'one=two,three=four';
+		$expected = [
+			'one'   => 'two',
+			'three' => 'four',
+		];
+
+		$this->assertEquals(implode(',', $expected), $this->cell->render('\Tests\Support\View\SampleClass::echobox', $params, 60));
+		$params = 'one=six,three=five';
+		// When auto-generating it takes the params as part of cachename, so it wouldn't have actually cached this, but
+		// we want to make sure it doesn't throw us a curveball here.
+		$this->assertEquals('six,five', $this->cell->render('\Tests\Support\View\SampleClass::echobox', $params, 1));
+	}
+
 	//--------------------------------------------------------------------
 
 	public function testParametersMatch()
@@ -253,6 +268,11 @@ class CellTest extends \CIUnitTestCase
 		$expected = 'Right on';
 
 		$this->assertEquals($expected, $this->cell->render('\Tests\Support\View\SampleClass::work', $params));
+	}
+
+	public function testCallInitControllerIfMethodExists()
+	{
+		$this->assertEquals('CodeIgniter\HTTP\Response', $this->cell->render('\Tests\Support\View\SampleClassWithInitController::index'));
 	}
 
 }

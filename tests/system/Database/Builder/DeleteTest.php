@@ -1,14 +1,14 @@
 <?php namespace Builder;
 
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class DeleteTest extends \CIUnitTestCase
+class DeleteTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $db;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -21,7 +21,7 @@ class DeleteTest extends \CIUnitTestCase
 	{
 		$builder = $this->db->table('jobs');
 
-		$answer = $builder->delete(['id' => 1], null, true, true);
+		$answer = $builder->testMode()->delete(['id' => 1], null, true);
 
 		$expectedSQL   = 'DELETE FROM "jobs" WHERE "id" = :id:';
 		$expectedBinds = [
@@ -35,5 +35,4 @@ class DeleteTest extends \CIUnitTestCase
 		$this->assertEquals($expectedBinds, $builder->getBinds());
 	}
 
-	//--------------------------------------------------------------------
 }

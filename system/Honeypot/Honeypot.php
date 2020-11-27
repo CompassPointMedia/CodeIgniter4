@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -38,9 +39,9 @@
 namespace CodeIgniter\Honeypot;
 
 use CodeIgniter\Config\BaseConfig;
+use CodeIgniter\Honeypot\Exceptions\HoneypotException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Honeypot\Exceptions\HoneypotException;
 
 /**
  * class Honeypot
@@ -70,6 +71,11 @@ class Honeypot
 		if ($this->config->hidden === '')
 		{
 			throw HoneypotException::forNoHiddenValue();
+		}
+
+		if (empty($this->config->container) || strpos($this->config->container, '{template}') === false)
+		{
+			$this->config->container = '<div style="display:none">{template}</div>';
 		}
 
 		if ($this->config->template === '')
@@ -123,8 +129,9 @@ class Honeypot
 
 		if ($this->config->hidden)
 		{
-			$template = '<div style="display:none">' . $template . '</div>';
+			$template = str_ireplace('{template}', $template, $this->config->container);
 		}
+
 		return $template;
 	}
 

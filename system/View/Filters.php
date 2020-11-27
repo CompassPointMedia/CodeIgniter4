@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -255,16 +256,18 @@ class Filters
 	 * @param $value
 	 * @param string      $currency
 	 * @param string|null $locale
+	 * @param integer     $fraction
 	 *
 	 * @return string
 	 */
-	public static function local_currency($value, string $currency, string $locale = null): string
+	public static function local_currency($value, string $currency, string $locale = null, $fraction = null): string
 	{
 		helper('number');
 
 		$options = [
 			'type'     => NumberFormatter::CURRENCY,
 			'currency' => $currency,
+			'fraction' => $fraction,
 		];
 
 		return format_number($value, 2, $locale, $options);
@@ -329,13 +332,10 @@ class Filters
 		{
 			case 'common':
 				return round($value, $precision);
-				break;
 			case 'ceil':
 				return ceil($value);
-				break;
 			case 'floor':
 				return floor($value);
-				break;
 		}
 
 		// Still here, just return the value.

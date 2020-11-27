@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -68,6 +69,12 @@ if (! function_exists('form_open'))
 		} // If an action is not a full URL then turn it into one
 		elseif (strpos($action, '://') === false)
 		{
+			// If an action has {locale}
+			if (strpos($action, '{locale}') !== false)
+			{
+				$action = str_replace('{locale}', Services::request()->getLocale(), $action);
+			}
+
 			$action = site_url($action);
 		}
 
@@ -179,7 +186,7 @@ if (! function_exists('form_hidden'))
 
 		if (! is_array($value))
 		{
-			$form .= '<input type="hidden" name="' . $name . '" value="' . esc($value, 'html') . "\" style=\"display:none;\" />\n";
+			$form .= '<input type="hidden" name="' . $name . '" value="' . esc($value) . "\" style=\"display:none;\" />\n";
 		}
 		else
 		{
@@ -407,7 +414,7 @@ if (! function_exists('form_dropdown'))
 				{
 					$sel   = in_array($optgroup_key, $selected) ? ' selected="selected"' : '';
 					$form .= '<option value="' . htmlspecialchars($optgroup_key) . '"' . $sel . '>'
-							. (string) $optgroup_val . "</option>\n";
+							. $optgroup_val . "</option>\n";
 				}
 				$form .= "</optgroup>\n";
 			}
@@ -415,7 +422,7 @@ if (! function_exists('form_dropdown'))
 			{
 				$form .= '<option value="' . htmlspecialchars($key) . '"'
 						. (in_array($key, $selected) ? ' selected="selected"' : '') . '>'
-						. (string) $val . "</option>\n";
+						. $val . "</option>\n";
 			}
 		}
 
@@ -644,9 +651,7 @@ if (! function_exists('form_datalist'))
 			$out .= "<option value='$option'>" . "\n";
 		}
 
-		$out .= '</datalist>' . "\n";
-
-		return $out;
+		return $out . ('</datalist>' . "\n");
 	}
 }
 
@@ -740,7 +745,7 @@ if (! function_exists('set_value'))
 			$value = $request->getPost($field) ?? $default;
 		}
 
-		return ($html_escape) ? esc($value, 'html') : $value;
+		return ($html_escape) ? esc($value) : $value;
 	}
 }
 
@@ -838,7 +843,7 @@ if (! function_exists('set_checkbox'))
 		}
 
 		// Unchecked checkbox and radio inputs are not even submitted by browsers ...
-		if (! empty($request->getPost()) || ! empty(old($field)))
+		if ((string) $input === '0' || ! empty($request->getPost()) || ! empty(old($field)))
 		{
 			return ($input === $value) ? ' checked="checked"' : '';
 		}
@@ -890,7 +895,7 @@ if (! function_exists('set_radio'))
 
 		// Unchecked checkbox and radio inputs are not even submitted by browsers ...
 		$result = '';
-		if (! empty($input = $request->getPost($field)) || ! empty($input = old($field)))
+		if ((string) $input === '0' || ! empty($input = $request->getPost($field)) || ! empty($input = old($field)))
 		{
 			$result = ($input === $value) ? ' checked="checked"' : '';
 		}
@@ -943,7 +948,7 @@ if (! function_exists('parse_form_attributes'))
 			{
 				if ($key === 'value')
 				{
-					$val = esc($val, 'html');
+					$val = esc($val);
 				}
 				elseif ($key === 'name' && ! strlen($default['name']))
 				{

@@ -1,30 +1,32 @@
 <?php
 
-use CodeIgniter\Session\Handlers\FileHandler;
-use CodeIgniter\HTTP\Response;
-use Config\App;
 use CodeIgniter\Config\Services;
-use CodeIgniter\Router\RouteCollection;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\Response;
 use CodeIgniter\HTTP\URI;
 use CodeIgniter\HTTP\UserAgent;
+use CodeIgniter\Router\RouteCollection;
+use CodeIgniter\Session\Handlers\FileHandler;
+use CodeIgniter\Test\Mock\MockIncomingRequest;
+use CodeIgniter\Test\Mock\MockSession;
+use CodeIgniter\Test\TestLogger;
+use Config\App;
 use Config\Logger;
-use Tests\Support\HTTP\MockIncomingRequest;
-use Tests\Support\Log\TestLogger;
-use Tests\Support\Session\MockSession;
+use Tests\Support\Models\JobModel;
 
 /**
  * @backupGlobals enabled
  */
-class CommonFunctionsTest extends \CIUnitTestCase
+class CommonFunctionsTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
-
+		$renderer = Services::renderer();
+		$renderer->resetData();
 		unset($_ENV['foo'], $_SERVER['foo']);
 	}
 
@@ -128,7 +130,7 @@ class CommonFunctionsTest extends \CIUnitTestCase
 			'bar'        => 'baz',
 		];
 		$expected = '<h1>bar</h1>';
-		$this->assertContains($expected, view('\Tests\Support\View\Views\simple', $data, []));
+		$this->assertStringContainsString($expected, view('\Tests\Support\View\Views\simple', $data, []));
 	}
 
 	public function testViewSavedData()
@@ -138,8 +140,8 @@ class CommonFunctionsTest extends \CIUnitTestCase
 			'bar'        => 'baz',
 		];
 		$expected = '<h1>bar</h1>';
-		$this->assertContains($expected, view('\Tests\Support\View\Views\simple', $data, ['saveData' => true]));
-		$this->assertContains($expected, view('\Tests\Support\View\Views\simple'));
+		$this->assertStringContainsString($expected, view('\Tests\Support\View\Views\simple', $data, ['saveData' => true]));
+		$this->assertStringContainsString($expected, view('\Tests\Support\View\Views\simple'));
 	}
 
 	// ------------------------------------------------------------------------
@@ -251,6 +253,11 @@ class CommonFunctionsTest extends \CIUnitTestCase
 		$this->assertEquals('csrf_test_name', csrf_token());
 	}
 
+	public function testCSRFHeader()
+	{
+		$this->assertEquals('X-CSRF-TOKEN', csrf_header());
+	}
+
 	public function testHash()
 	{
 		$this->assertEquals(32, strlen(csrf_hash()));
@@ -258,7 +265,24 @@ class CommonFunctionsTest extends \CIUnitTestCase
 
 	public function testCSRFField()
 	{
-		$this->assertContains('<input type="hidden" ', csrf_field());
+		$this->assertStringContainsString('<input type="hidden" ', csrf_field());
+	}
+
+	public function testCSRFMeta()
+	{
+		$this->assertStringContainsString('<meta name="X-CSRF-TOKEN" ', csrf_meta());
+	}
+
+	// ------------------------------------------------------------------------
+
+	public function testModelNotExists()
+	{
+		$this->assertNull(model(UnexsistenceClass::class));
+	}
+
+	public function testModelExists()
+	{
+		$this->assertInstanceOf(JobModel::class, model(JobModel::class));
 	}
 
 	// ------------------------------------------------------------------------
@@ -393,6 +417,42 @@ class CommonFunctionsTest extends \CIUnitTestCase
 
 		$this->assertTrue($answer1->hasCookie('foo', 'onething'));
 		$this->assertTrue($answer1->hasCookie('login_time'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testTrace()
+	{
+		ob_start();
+		trace();
+		$content = ob_get_clean();
+
+		$this->assertStringContainsString('Debug Backtrace', $content);
+	}
+
+	public function testViewNotSaveData()
+	{
+		$data = [
+			'testString' => 'bar',
+			'bar'        => 'baz',
+		];
+		$this->assertStringContainsString('<h1>bar</h1>', view('\Tests\Support\View\Views\simples', $data, ['saveData' => false]));
+		$this->assertStringContainsString('<h1>is_not</h1>', view('\Tests\Support\View\Views\simples'));
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState  disabled
+	 */
+	public function testForceHttpsNullRequestAndResponse()
+	{
+		$this->assertNull(Services::response()->getHeader('Location'));
+
+		force_https();
+
+		$this->assertEquals('https://example.com', Services::response()->getHeader('Location')->getValue());
 	}
 
 }

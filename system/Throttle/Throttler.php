@@ -8,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -168,9 +169,9 @@ class Throttler implements ThrottlerInterface
 		$tokens += $rate * $elapsed;
 		$tokens  = $tokens > $capacity ? $capacity : $tokens;
 
-		// If $tokens > 0, then we are safe to perform the action, but
+		// If $tokens >= 1, then we are safe to perform the action, but
 		// we need to decrement the number of available tokens.
-		if ($tokens > 0)
+		if ($tokens >= 1)
 		{
 			$this->cache->save($tokenName, $tokens - $cost, $seconds);
 			$this->cache->save($tokenName . 'Time', time(), $seconds);
@@ -208,5 +209,4 @@ class Throttler implements ThrottlerInterface
 	{
 		return $this->testTime ?? time();
 	}
-
 }

@@ -1,15 +1,15 @@
 <?php namespace Builder;
 
 use CodeIgniter\Database\BaseBuilder;
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class EmptyTest extends \CIUnitTestCase
+class EmptyTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $db;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -22,7 +22,7 @@ class EmptyTest extends \CIUnitTestCase
 	{
 		$builder = new BaseBuilder('jobs', $this->db);
 
-		$answer = $builder->emptyTable(true);
+		$answer = $builder->testMode()->emptyTable();
 
 		$expectedSQL = 'DELETE FROM "jobs"';
 

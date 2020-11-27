@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * CodeIgniter
  *
@@ -9,6 +8,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2019 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2019-2020 CodeIgniter Foundation
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 4.0.0
@@ -39,10 +39,10 @@
 
 namespace CodeIgniter\HTTP;
 
-use Config\App;
-use Config\Format;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
 use CodeIgniter\Pager\PagerInterface;
+use Config\App;
+use Config\Format;
 
 /**
  * Representation of an outgoing, getServer-side response.
@@ -230,7 +230,7 @@ class Response extends Message implements ResponseInterface
 	/**
 	 * Constructor
 	 *
-	 * @param App $config
+	 * @param \Config\App $config
 	 */
 	public function __construct($config)
 	{
@@ -238,13 +238,10 @@ class Response extends Message implements ResponseInterface
 		// Also ensures that a Cache-control header exists.
 		$this->noCache();
 
-		// Are we enforcing a Content Security Policy?
-		if ($config->CSPEnabled === true)
-		{
-			$this->CSP        = new ContentSecurityPolicy(new \Config\ContentSecurityPolicy());
-			$this->CSPEnabled = true;
-		}
+		// We need CSP object even if not enabled to avoid calls to non existing methods
+		$this->CSP = new ContentSecurityPolicy(new \Config\ContentSecurityPolicy());
 
+		$this->CSPEnabled     = $config->CSPEnabled;
 		$this->cookiePrefix   = $config->cookiePrefix;
 		$this->cookieDomain   = $config->cookieDomain;
 		$this->cookiePath     = $config->cookiePath;
@@ -444,12 +441,13 @@ class Response extends Message implements ResponseInterface
 	 * Converts the $body into JSON and sets the Content Type header.
 	 *
 	 * @param array|string $body
+	 * @param boolean      $name
 	 *
 	 * @return $this
 	 */
-	public function setJSON($body)
+	public function setJSON($body, bool $unencoded = false)
 	{
-		$this->body = $this->formatBody($body, 'json');
+		$this->body = $this->formatBody($body, 'json' . ($unencoded ? '-unencoded' : ''));
 
 		return $this;
 	}
@@ -537,12 +535,12 @@ class Response extends Message implements ResponseInterface
 	 */
 	protected function formatBody($body, string $format)
 	{
-		$mime = "application/{$format}";
+		$this->bodyFormat = ($format === 'json-unencoded' ? 'json' : $format);
+		$mime             = "application/{$this->bodyFormat}";
 		$this->setContentType($mime);
-		$this->bodyFormat = $format;
 
 		// Nothing much to do for a string...
-		if (! is_string($body))
+		if (! is_string($body) || $format === 'json-unencoded')
 		{
 			/**
 			 * @var Format $config
@@ -712,18 +710,18 @@ class Response extends Message implements ResponseInterface
 
 		// Per spec, MUST be sent with each request, if possible.
 		// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
-		if (! isset($this->headers['Date']))
+		if (! isset($this->headers['Date']) && php_sapi_name() !== 'cli-server')
 		{
-			$this->setDate(\DateTime::createFromFormat('U', time()));
+			$this->setDate(\DateTime::createFromFormat('U', (string) time()));
 		}
 
 		// HTTP Status
-		header(sprintf('HTTP/%s %s %s', $this->protocolVersion, $this->statusCode, $this->reason), true, $this->statusCode);
+		header(sprintf('HTTP/%s %s %s', $this->getProtocolVersion(), $this->statusCode, $this->reason), true, $this->statusCode);
 
 		// Send all of our headers
 		foreach ($this->getHeaders() as $name => $values)
 		{
-			header($name . ': ' . $this->getHeaderLine($name), false, $this->statusCode);
+			header($name . ': ' . $this->getHeaderLine($name), true, $this->statusCode);
 		}
 
 		return $this;
@@ -785,7 +783,7 @@ class Response extends Message implements ResponseInterface
 		{
 			if ($method !== 'refresh')
 			{
-				$code = ($_SERVER['REQUEST_METHOD'] !== 'GET') ? 303 : 307;
+				$code = ($_SERVER['REQUEST_METHOD'] !== 'GET') ? 303 : ($code === 302 ? 307 : $code);
 			}
 		}
 
@@ -812,14 +810,14 @@ class Response extends Message implements ResponseInterface
 	 * Accepts an arbitrary number of binds (up to 7) or an associative
 	 * array in the first parameter containing all the values.
 	 *
-	 * @param string|array  $name     Cookie name or array containing binds
-	 * @param string        $value    Cookie value
-	 * @param string        $expire   Cookie expiration time in seconds
-	 * @param string        $domain   Cookie domain (e.g.: '.yourdomain.com')
-	 * @param string        $path     Cookie path (default: '/')
-	 * @param string        $prefix   Cookie name prefix
-	 * @param boolean|false $secure   Whether to only transfer cookies via SSL
-	 * @param boolean|false $httponly Whether only make the cookie accessible via HTTP (no javascript)
+	 * @param string|array $name     Cookie name or array containing binds
+	 * @param string       $value    Cookie value
+	 * @param string       $expire   Cookie expiration time in seconds
+	 * @param string       $domain   Cookie domain (e.g.: '.yourdomain.com')
+	 * @param string       $path     Cookie path (default: '/')
+	 * @param string       $prefix   Cookie name prefix
+	 * @param boolean      $secure   Whether to only transfer cookies via SSL
+	 * @param boolean      $httponly Whether only make the cookie accessible via HTTP (no javascript)
 	 *
 	 * @return $this
 	 */
@@ -988,6 +986,7 @@ class Response extends Message implements ResponseInterface
 
 		$name = $prefix . $name;
 
+		$cookieHasFlag = false;
 		foreach ($this->cookies as &$cookie)
 		{
 			if ($cookie['name'] === $name)
@@ -1002,12 +1001,27 @@ class Response extends Message implements ResponseInterface
 				}
 				$cookie['value']   = '';
 				$cookie['expires'] = '';
-
+				$cookieHasFlag     = true;
 				break;
 			}
 		}
 
+		if (! $cookieHasFlag)
+		{
+			$this->setCookie($name, '', '', $domain, $path, $prefix);
+		}
+
 		return $this;
+	}
+
+	/**
+	 * Returns all cookies currently set.
+	 *
+	 * @return array
+	 */
+	public function getCookies()
+	{
+		return $this->cookies;
 	}
 
 	/**

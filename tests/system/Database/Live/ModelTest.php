@@ -1,9 +1,10 @@
 <?php namespace CodeIgniter\Database\Live;
 
+use BadMethodCallException;
 use CodeIgniter\Config\Config;
+use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\Exceptions\DataException;
 use CodeIgniter\Entity;
-use CodeIgniter\Exceptions\EntityException;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Model;
 use CodeIgniter\Test\CIDatabaseTestCase;
@@ -14,6 +15,7 @@ use Tests\Support\Models\EventModel;
 use Tests\Support\Models\JobModel;
 use Tests\Support\Models\SecondaryModel;
 use Tests\Support\Models\SimpleEntity;
+use Tests\Support\Models\StringifyPkeyModel;
 use Tests\Support\Models\UserModel;
 use Tests\Support\Models\ValidErrorsModel;
 use Tests\Support\Models\ValidModel;
@@ -29,7 +31,7 @@ class ModelTest extends CIDatabaseTestCase
 
 	protected $seed = 'Tests\Support\Database\Seeds\CITestSeeder';
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -38,7 +40,7 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 
@@ -122,7 +124,7 @@ class ModelTest extends CIDatabaseTestCase
 		$job = $model->asArray()
 					 ->find(4);
 
-		$this->assertInternalType('array', $job);
+		$this->assertIsArray($job);
 	}
 
 	//--------------------------------------------------------------------
@@ -134,7 +136,7 @@ class ModelTest extends CIDatabaseTestCase
 		$job = $model->asObject()
 					 ->find(4);
 
-		$this->assertInternalType('object', $job);
+		$this->assertIsObject($job);
 	}
 
 	//--------------------------------------------------------------------
@@ -250,20 +252,96 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	public function testFirstRespectsSoftDeletes()
+	public function provideGroupBy()
+	{
+		return [
+			[
+				true,
+				3,
+			],
+			[
+				false,
+				7,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provideGroupBy
+	 */
+	public function testFirstAggregate($groupBy, $total)
+	{
+		$model = new UserModel();
+
+		if ($groupBy)
+		{
+			$model->groupBy('id');
+		}
+
+		$user = $model->select('SUM(id) as total')
+					  ->where('id >', 2)
+					  ->first();
+
+		$this->assertEquals($total, $user->total);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function provideAggregateAndGroupBy()
+	{
+		return [
+			[
+				true,
+				true,
+			],
+			[
+				false,
+				false,
+			],
+			[
+				true,
+				false,
+			],
+			[
+				false,
+				true,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provideAggregateAndGroupBy
+	 */
+	public function testFirstRespectsSoftDeletes($aggregate, $groupBy)
 	{
 		$this->db->table('user')
 				 ->where('id', 1)
 				 ->update(['deleted_at' => date('Y-m-d H:i:s')]);
 
 		$model = new UserModel();
+		if ($aggregate)
+		{
+			$model->select('SUM(id) as id');
+		}
+
+		if ($groupBy)
+		{
+			$model->groupBy('id');
+		}
 
 		$user = $model->first();
 
-		// fix for PHP7.2
-		$count = is_array($user) ? count($user) : 1;
-		$this->assertEquals(1, $count);
-		$this->assertEquals(2, $user->id);
+		if (! $aggregate || $groupBy)
+		{
+			// fix for PHP7.2
+			$count = is_array($user) ? count($user) : 1;
+			$this->assertEquals(1, $count);
+			$this->assertEquals(2, $user->id);
+		}
+		else
+		{
+			$this->assertEquals(9, $user->id);
+		}
 
 		$user = $model->withDeleted()
 					  ->first();
@@ -331,7 +409,28 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	public function testSaveUpdateRecordObject()
+	public function testSaveNewRecordArrayFail()
+	{
+		$this->setPrivateProperty($this->db, 'DBDebug', false);
+
+		$model = new JobModel();
+
+		$data = [
+			'name123'     => 'Apprentice',
+			'description' => 'That thing you do.',
+		];
+
+		$result = $model->protect(false)
+			  ->save($data);
+
+		$this->assertFalse($result);
+
+		$this->dontSeeInDatabase('job', ['name' => 'Apprentice']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSaveUpdateRecordArray()
 	{
 		$model = new JobModel();
 
@@ -350,7 +449,29 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	public function testSaveUpdateRecordArray()
+	public function testSaveUpdateRecordArrayFail()
+	{
+		$this->setPrivateProperty($this->db, 'DBDebug', false);
+
+		$model = new JobModel();
+
+		$data = [
+			'id'          => 1,
+			'name123'     => 'Apprentice',
+			'description' => 'That thing you do.',
+		];
+
+		$result = $model->protect(false)
+						->save($data);
+
+		$this->assertFalse($result);
+
+		$this->dontSeeInDatabase('job', ['name' => 'Apprentice']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testSaveUpdateRecordObject()
 	{
 		$model = new JobModel();
 
@@ -392,9 +513,39 @@ class ModelTest extends CIDatabaseTestCase
 
 		$this->seeInDatabase('job', ['name' => 'Developer']);
 
-		$model->delete(1);
+		$result = $model->delete(1);
+		$this->assertTrue($result->resultID !== false);
 
 		$this->dontSeeInDatabase('job', ['name' => 'Developer']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testDeleteFail()
+	{
+		$this->setPrivateProperty($this->db, 'DBDebug', false);
+
+		$model = new JobModel();
+
+		$this->seeInDatabase('job', ['name' => 'Developer']);
+
+		$result = $model->where('name123', 'Developer')->delete();
+		$this->assertFalse($result->resultID);
+
+		$this->seeInDatabase('job', ['name' => 'Developer']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testDeleteStringPrimaryKey()
+	{
+		$model = new StringifyPkeyModel();
+
+		$this->seeInDatabase('stringifypkey', ['value' => 'test']);
+
+		$model->delete('A01');
+
+		$this->dontSeeInDatabase('stringifypkey', ['value' => 'test']);
 	}
 
 	//--------------------------------------------------------------------
@@ -405,9 +556,26 @@ class ModelTest extends CIDatabaseTestCase
 
 		$this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NULL' => null]);
 
-		$model->delete(1);
+		$result = $model->delete(1);
+		$this->assertTrue($result);
 
 		$this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NOT NULL' => null]);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testDeleteWithSoftDeleteFail()
+	{
+		$this->setPrivateProperty($this->db, 'DBDebug', false);
+
+		$model = new UserModel();
+
+		$this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NULL' => null]);
+
+		$result = $model->where('name123', 'Derek Jones')->delete();
+		$this->assertFalse($result);
+
+		$this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NULL' => null]);
 	}
 
 	//--------------------------------------------------------------------
@@ -503,13 +671,14 @@ class ModelTest extends CIDatabaseTestCase
 	}    //--------------------------------------------------------------------
 
 	/**
-	 * @expectedException        \CodeIgniter\Database\Exceptions\DatabaseException
-	 * @expectedExceptionMessage Deletes are not allowed unless they contain a "where" or "like" clause.
-	 * @dataProvider             emptyPkValues
-	 * @return                   void
+	 * @dataProvider emptyPkValues
+	 * @return       void
 	 */
 	public function testThrowExceptionWhenSoftDeleteParamIsEmptyValue($emptyValue)
 	{
+		$this->expectException('CodeIgniter\Database\Exceptions\DatabaseException');
+		$this->expectExceptionMessage('Deletes are not allowed unless they contain a "where" or "like" clause.');
+
 		$model = new UserModel();
 		$this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NULL' => null]);
 		$model->delete($emptyValue);
@@ -518,13 +687,14 @@ class ModelTest extends CIDatabaseTestCase
 	//--------------------------------------------------------------------
 
 	/**
-	 * @expectedException        \CodeIgniter\Database\Exceptions\DatabaseException
-	 * @expectedExceptionMessage Deletes are not allowed unless they contain a "where" or "like" clause.
-	 * @dataProvider             emptyPkValues
-	 * @return                   void
+	 * @dataProvider emptyPkValues
+	 * @return       void
 	 */
 	public function testDontDeleteRowsWhenSoftDeleteParamIsEmpty($emptyValue)
 	{
+		$this->expectException('CodeIgniter\Database\Exceptions\DatabaseException');
+		$this->expectExceptionMessage('Deletes are not allowed unless they contain a "where" or "like" clause.');
+
 		$model = new UserModel();
 		$this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NULL' => null]);
 		$model->delete($emptyValue);
@@ -571,6 +741,63 @@ class ModelTest extends CIDatabaseTestCase
 		$errors = $model->errors();
 
 		$this->assertEquals('You forgot to name the baby.', $errors['name']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testValidationWithSetValidationRule()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name'        => 'some name',
+			'description' => 'some great marketing stuff',
+		];
+
+		$model->setValidationRule('description', [
+			'rules'  => 'required|min_length[50]',
+			'errors' => [
+				'min_length' => 'Description is too short baby.',
+			],
+		]);
+		$this->assertFalse($model->insert($data));
+
+		$errors = $model->errors();
+
+		$this->assertEquals('Description is too short baby.', $errors['description']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testValidationWithSetValidationRules()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name'        => '',
+			'description' => 'some great marketing stuff',
+		];
+
+		$model->setValidationRules([
+			'name'        => [
+				'rules'  => 'required',
+				'errors' => [
+					'required' => 'Give me a name baby.',
+				],
+			],
+			'description' => [
+				'rules'  => 'required|min_length[50]',
+				'errors' => [
+					'min_length' => 'Description is too short baby.',
+				],
+			],
+		]);
+		$this->assertFalse($model->insert($data));
+
+		$errors = $model->errors();
+
+		$this->assertEquals('Give me a name baby.', $errors['name']);
+		$this->assertEquals('Description is too short baby.', $errors['description']);
 	}
 
 	//--------------------------------------------------------------------
@@ -660,8 +887,7 @@ class ModelTest extends CIDatabaseTestCase
 			'description' => 'some great marketing stuff',
 		];
 
-		$this->assertInternalType('numeric', $model->skipValidation(true)
-												   ->insert($data));
+		$this->assertIsNumeric($model->skipValidation(true)->insert($data));
 	}
 
 	//--------------------------------------------------------------------
@@ -880,6 +1106,57 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testAllowCallbacksFalsePreventsTriggers()
+	{
+		$model = new EventModel();
+
+		$model->allowCallbacks(false)->find(1);
+
+		$this->assertFalse($model->hasToken('afterFind'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testAllowCallbacksTrueFiresTriggers()
+	{
+		$model = new EventModel();
+		$this->setPrivateProperty($model, 'allowCallbacks', false);
+
+		$model->allowCallbacks(true)->find(1);
+
+		$this->assertTrue($model->hasToken('afterFind'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testAllowCallbacksResetsAfterTrigger()
+	{
+		$model = new EventModel();
+
+		$model->allowCallbacks(false)->find(1);
+		$model->delete(1);
+
+		$this->assertFalse($model->hasToken('afterFind'));
+		$this->assertTrue($model->hasToken('afterDelete'));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testAllowCallbacksUsesModelProperty()
+	{
+		$model = new EventModel();
+		$this->setPrivateProperty($model, 'allowCallbacks', false);
+		$this->setPrivateProperty($model, 'tempAllowCallbacks', false); // Was already set by the constructor
+
+		$model->find(1);
+		$model->delete(1);
+
+		$this->assertFalse($model->hasToken('afterFind'));
+		$this->assertFalse($model->hasToken('afterDelete'));
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testSetWorksWithInsert()
 	{
 		$model = new EventModel();
@@ -971,11 +1248,38 @@ class ModelTest extends CIDatabaseTestCase
 			'deleted' => 0,
 		];
 
-		$id = $model->insert($data);
-		$model->update([1, 2], ['name' => 'Foo Bar']);
+		$id     = $model->insert($data);
+		$result = $model->update([1, 2], ['name' => 'Foo Bar']);
+
+		$this->assertTrue($result);
 
 		$this->seeInDatabase('user', ['id' => 1, 'name' => 'Foo Bar']);
 		$this->seeInDatabase('user', ['id' => 2, 'name' => 'Foo Bar']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testUpdateResultFail()
+	{
+		$this->setPrivateProperty($this->db, 'DBDebug', false);
+
+		$model = new EventModel();
+
+		$data = [
+			'name'    => 'Foo',
+			'email'   => 'foo@example.com',
+			'country' => 'US',
+			'deleted' => 0,
+		];
+
+		$id = $model->insert($data);
+
+		$this->setPrivateProperty($model, 'allowedFields', ['name123']);
+		$result = $model->update(1, ['name123' => 'Foo Bar 1']);
+
+		$this->assertFalse($result);
+
+		$this->dontSeeInDatabase('user', ['id' => 1, 'name' => 'Foo Bar 1']);
 	}
 
 	//--------------------------------------------------------------------
@@ -1229,7 +1533,7 @@ class ModelTest extends CIDatabaseTestCase
 
 		$data = [
 			'name'        => 'foobar',
-			'description' => 'just becaues we have to',
+			'description' => 'just because we have to',
 		];
 
 		$this->assertTrue($model->insert($data) !== false);
@@ -1262,12 +1566,11 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	/**
-	 * @expectedException        \CodeIgniter\Exceptions\ModelException
-	 * @expectedExceptionMessage `Tests\Support\Models\UserModel` model class does not specify a Primary Key.
-	 */
 	public function testThrowsWithNoPrimaryKey()
 	{
+		$this->expectException('CodeIgniter\Exceptions\ModelException');
+		$this->expectExceptionMessage('`Tests\Support\Models\UserModel` model class does not specify a Primary Key.');
+
 		$model = new UserModel();
 		$this->setPrivateProperty($model, 'primaryKey', '');
 
@@ -1276,12 +1579,11 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	/**
-	 * @expectedException        \CodeIgniter\Exceptions\ModelException
-	 * @expectedExceptionMessage `Tests\Support\Models\UserModel` model class does not have a valid dateFormat.
-	 */
 	public function testThrowsWithNoDateFormat()
 	{
+		$this->expectException('CodeIgniter\Exceptions\ModelException');
+		$this->expectExceptionMessage('`Tests\Support\Models\UserModel` model class does not have a valid dateFormat.');
+
 		$model = new UserModel();
 		$this->setPrivateProperty($model, 'dateFormat', '');
 
@@ -1305,6 +1607,52 @@ class ModelTest extends CIDatabaseTestCase
 		$lastInsertId = $model->getInsertID();
 
 		$this->seeInDatabase('job', ['id' => $lastInsertId]);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testInsertResult()
+	{
+		$model = new JobModel();
+
+		$data = [
+			'name'        => 'Apprentice',
+			'description' => 'That thing you do.',
+		];
+
+		$result = $model->protect(false)
+			  ->insert($data, false);
+
+		$this->assertTrue($result->resultID !== false);
+
+		$lastInsertId = $model->getInsertID();
+
+		$this->seeInDatabase('job', ['id' => $lastInsertId]);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testInsertResultFail()
+	{
+		$this->setPrivateProperty($this->db, 'DBDebug', false);
+
+		$model = new JobModel();
+
+		$data = [
+			'name123'     => 'Apprentice',
+			'description' => 'That thing you do.',
+		];
+
+		$result = $model->protect(false)
+			  ->insert($data, false);
+
+		$this->assertFalse($result->resultID);
+
+		$lastInsertId = $model->getInsertID();
+
+		$this->assertEquals(0, $lastInsertId);
+
+		$this->dontSeeInDatabase('job', ['id' => $lastInsertId]);
 	}
 
 	//--------------------------------------------------------------------
@@ -1337,6 +1685,70 @@ class ModelTest extends CIDatabaseTestCase
 		$data = $model->paginate();
 
 		$this->assertEquals(4, count($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testPaginateChangeConfigPager()
+	{
+		$perPage                 = config('Pager')->perPage;
+		config('Pager')->perPage = 1;
+
+		$model = new ValidModel($this->db);
+
+		$data = $model->paginate();
+
+		$this->assertEquals(1, count($data));
+
+		config('Pager')->perPage = $perPage;
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testPaginatePassPerPageParameter()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = $model->paginate(2);
+
+		$this->assertEquals(2, count($data));
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testPaginateForQueryWithGroupBy()
+	{
+		$model = new ValidModel($this->db);
+		$model->groupBy('id');
+
+		$model->paginate();
+		$this->assertEquals(4, $model->pager->getDetails()['total']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testPaginateWithDeleted()
+	{
+		$model = new UserModel($this->db);
+		$model->delete(1);
+
+		$data = $model->withDeleted()->paginate();
+
+		$this->assertEquals(4, count($data));
+		$this->assertEquals(4, $model->pager->getDetails()['total']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testPaginateWithoutDeleted()
+	{
+		$model = new UserModel($this->db);
+		$model->delete(1);
+
+		$data = $model->withDeleted(false)->paginate();
+
+		$this->assertEquals(3, count($data));
+		$this->assertEquals(3, $model->pager->getDetails()['total']);
 	}
 
 	//--------------------------------------------------------------------
@@ -1614,7 +2026,7 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	public function testInsertWithNoDataException()
+	public function testInsertArrayWithNoDataException()
 	{
 		$model = new UserModel();
 		$data  = [];
@@ -1625,7 +2037,7 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	public function testUpdateWithNoDataException()
+	public function testUpdateArrayWithNoDataException()
 	{
 		$model = new EventModel();
 
@@ -1639,6 +2051,40 @@ class ModelTest extends CIDatabaseTestCase
 		$id = $model->insert($data);
 
 		$data = [];
+
+		$this->expectException(DataException::class);
+		$this->expectExceptionMessage('There is no data to update.');
+
+		$model->update($id, $data);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testInsertObjectWithNoDataException()
+	{
+		$model = new UserModel();
+		$data  = new \stdClass();
+		$this->expectException(DataException::class);
+		$this->expectExceptionMessage('There is no data to insert.');
+		$model->insert($data);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testUpdateObjectWithNoDataException()
+	{
+		$model = new EventModel();
+
+		$data = (object) [
+							 'name'    => 'Foo',
+							 'email'   => 'foo@example.com',
+							 'country' => 'US',
+							 'deleted' => 0,
+						 ];
+
+		$id = $model->insert($data);
+
+		$data = new \stdClass();
 
 		$this->expectException(DataException::class);
 		$this->expectExceptionMessage('There is no data to update.');
@@ -1735,4 +2181,213 @@ class ModelTest extends CIDatabaseTestCase
 		// Just making sure it didn't throw ambiguous deleted error
 		$this->assertEquals(1, $results->id);
 	}
+
+	//--------------------------------------------------------------------
+
+	public function testMagicIssetTrue()
+	{
+		$model = new UserModel();
+
+		$this->assertTrue(isset($model->table));
+	}
+
+	public function testMagicIssetFalse()
+	{
+		$model = new UserModel();
+
+		$this->assertFalse(isset($model->foobar));
+	}
+
+	public function testMagicIssetWithNewProperty()
+	{
+		$model = new UserModel();
+
+		$model->flavor = 'chocolate';
+
+		$this->assertTrue(isset($model->flavor));
+	}
+
+	public function testMagicIssetFromDb()
+	{
+		$model = new UserModel();
+
+		$this->assertTrue(isset($model->DBPrefix));
+	}
+
+	public function testMagicIssetFromBuilder()
+	{
+		$model = new UserModel();
+
+		$this->assertTrue(isset($model->QBNoEscape));
+	}
+
+	public function testMagicGet()
+	{
+		$model = new UserModel();
+
+		$this->assertEquals('user', $model->table);
+	}
+
+	public function testMagicGetMissing()
+	{
+		$model = new UserModel();
+
+		$this->assertNull($model->foobar);
+	}
+
+	public function testMagicGetFromDB()
+	{
+		$model = new UserModel();
+
+		$this->assertEquals('utf8', $model->charset);
+	}
+
+	public function testMagicGetFromBuilder()
+	{
+		$model = new UserModel();
+
+		$this->assertIsArray($model->QBNoEscape);
+	}
+
+	public function testUndefinedModelMethod()
+	{
+		$model = new UserModel($this->db);
+		$this->expectException(BadMethodCallException::class);
+		$this->expectExceptionMessage('Call to undefined method Tests\Support\Models\UserModel::undefinedMethodCall');
+		$model->undefinedMethodCall();
+	}
+
+	public function testUndefinedMethodInBuilder()
+	{
+		$model = new JobModel($this->db);
+
+		$model->find(1);
+
+		$this->expectException(BadMethodCallException::class);
+		$this->expectExceptionMessage('Call to undefined method Tests\Support\Models\JobModel::getBindings');
+
+		$binds = $model->builder()
+			->getBindings();
+	}
+
+	/**
+	 * @dataProvider provideAggregateAndGroupBy
+	 */
+	public function testFirstRecoverTempUseSoftDeletes($aggregate, $groupBy)
+	{
+		$model = new UserModel($this->db);
+		$model->delete(1);
+		if ($aggregate)
+		{
+			$model->select('sum(id) as id');
+		}
+
+		if ($groupBy)
+		{
+			$model->groupBy('id');
+		}
+
+		$user = $model->withDeleted()->first();
+		$this->assertEquals(1, $user->id);
+
+		$user2 = $model->first();
+		$this->assertEquals(2, $user2->id);
+	}
+
+	public function testcountAllResultsRecoverTempUseSoftDeletes()
+	{
+		$model = new UserModel($this->db);
+		$model->delete(1);
+		$this->assertEquals(4, $model->withDeleted()->countAllResults());
+		$this->assertEquals(3, $model->countAllResults());
+	}
+
+	public function testcountAllResultsFalseWithDeletedTrue()
+	{
+		$builder     = new BaseBuilder('user', $this->db);
+		$expectedSQL = $builder->testMode()->countAllResults();
+
+		$model = new UserModel($this->db);
+		$model->delete(1);
+
+		$this->assertEquals(4, $model->withDeleted()->countAllResults(false));
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertFalse($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+
+		$this->assertEquals(4, $model->countAllResults());
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertTrue($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+	}
+
+	public function testcountAllResultsFalseWithDeletedFalse()
+	{
+		$builder     = new BaseBuilder('user', $this->db);
+		$expectedSQL = $builder->testMode()->where('user.deleted_at', null)->countAllResults();
+
+		$model = new UserModel($this->db);
+		$model->delete(1);
+
+		$this->assertEquals(3, $model->withDeleted(false)->countAllResults(false));
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertFalse($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+
+		$this->assertEquals(3, $model->countAllResults());
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertTrue($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+	}
+
+	public function testcountAllResultsFalseWithDeletedTrueUseSoftDeletesFalse()
+	{
+		$builder     = new BaseBuilder('user', $this->db);
+		$expectedSQL = $builder->testMode()->countAllResults();
+
+		$model = new UserModel($this->db);
+		$model->delete(1);
+
+		$this->setPrivateProperty($model, 'useSoftDeletes', false);
+
+		$this->assertEquals(4, $model->withDeleted()->countAllResults(false));
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertFalse($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+
+		$this->assertEquals(4, $model->countAllResults());
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertFalse($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+	}
+
+	public function testcountAllResultsFalseWithDeletedFalseUseSoftDeletesFalse()
+	{
+		$builder     = new BaseBuilder('user', $this->db);
+		$expectedSQL = $builder->testMode()->where('user.deleted_at', null)->countAllResults();
+
+		$model = new UserModel($this->db);
+		$model->delete(1);
+
+		$this->setPrivateProperty($model, 'useSoftDeletes', false);
+
+		$this->assertEquals(3, $model->withDeleted(false)->countAllResults(false));
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertFalse($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+
+		$this->assertEquals(3, $model->countAllResults());
+
+		$this->assertEquals($expectedSQL, (string)$this->db->getLastQuery());
+
+		$this->assertFalse($this->getPrivateProperty($model, 'tempUseSoftDeletes'));
+	}
+
 }

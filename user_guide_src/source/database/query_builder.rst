@@ -188,8 +188,8 @@ the resulting field.
 
 ::
 
-	$builder->selectSum('age');
-	$query = $builder->get(); // Produces: SELECT SUM(age) as age FROM mytable
+	$builder->selectCount('age');
+	$query = $builder->get(); // Produces: SELECT COUNT(age) as age FROM mytable
 
 **$builder->from()**
 
@@ -427,7 +427,7 @@ searches.
 
 		$builder->like('title', 'match');
 		$builder->like('body', 'match');
-		// WHERE `title` LIKE '%match%' ESCAPE '!' AND  `body` LIKE '%match% ESCAPE '!'
+		// WHERE `title` LIKE '%match%' ESCAPE '!' AND  `body` LIKE '%match%' ESCAPE '!'
 
 	If you want to control where the wildcard (%) is placed, you can use
 	an optional third argument. Your options are 'before', 'after' and
@@ -435,9 +435,9 @@ searches.
 
 	::
 
-		$builder->like('title', 'match', 'before');	// Produces: WHERE `title` LIKE '%match' ESCAPE '!'
-		$builder->like('title', 'match', 'after');	// Produces: WHERE `title` LIKE 'match%' ESCAPE '!'
-		$builder->like('title', 'match', 'both');	// Produces: WHERE `title` LIKE '%match%' ESCAPE '!'
+		$builder->like('title', 'match', 'before'); // Produces: WHERE `title` LIKE '%match' ESCAPE '!'
+		$builder->like('title', 'match', 'after');  // Produces: WHERE `title` LIKE 'match%' ESCAPE '!'
+		$builder->like('title', 'match', 'both');   // Produces: WHERE `title` LIKE '%match%' ESCAPE '!'
 
 #. **Associative array method:**
 
@@ -515,6 +515,158 @@ setting it to FALSE.
 **$builder->orHaving()**
 
 Identical to having(), only separates multiple clauses with "OR".
+
+**$builder->havingIn()**
+
+Generates a HAVING field IN ('item', 'item') SQL query joined with AND if
+appropriate
+
+    ::
+
+        $groups = [1, 2, 3];
+        $builder->havingIn('group_id', $groups);
+        // Produces: HAVING group_id IN (1, 2, 3)
+
+You can use subqueries instead of an array of values.
+
+    ::
+
+        $builder->havingIn('id', function(BaseBuilder $builder) {
+            return $builder->select('user_id')->from('users_jobs')->where('group_id', 3);
+        });
+        // Produces: HAVING "id" IN (SELECT "user_id" FROM "users_jobs" WHERE "group_id" = 3)
+
+**$builder->orHavingIn()**
+
+Generates a HAVING field IN ('item', 'item') SQL query joined with OR if
+appropriate
+
+    ::
+
+        $groups = [1, 2, 3];
+        $builder->orHavingIn('group_id', $groups);
+        // Produces: OR group_id IN (1, 2, 3)
+
+You can use subqueries instead of an array of values.
+
+    ::
+
+        $builder->orHavingIn('id', function(BaseBuilder $builder) {
+            return $builder->select('user_id')->from('users_jobs')->where('group_id', 3);
+        });
+
+        // Produces: OR "id" IN (SELECT "user_id" FROM "users_jobs" WHERE "group_id" = 3)
+
+**$builder->havingNotIn()**
+
+Generates a HAVING field NOT IN ('item', 'item') SQL query joined with
+AND if appropriate
+
+    ::
+
+        $groups = [1, 2, 3];
+        $builder->havingNotIn('group_id', $groups);
+        // Produces: HAVING group_id NOT IN (1, 2, 3)
+
+You can use subqueries instead of an array of values.
+
+    ::
+
+        $builder->havingNotIn('id', function(BaseBuilder $builder) {
+            return $builder->select('user_id')->from('users_jobs')->where('group_id', 3);
+        });
+
+        // Produces: HAVING "id" NOT IN (SELECT "user_id" FROM "users_jobs" WHERE "group_id" = 3)
+
+
+**$builder->orHavingNotIn()**
+
+Generates a HAVING field NOT IN ('item', 'item') SQL query joined with OR
+if appropriate
+
+    ::
+
+        $groups = [1, 2, 3];
+        $builder->havingNotIn('group_id', $groups);
+        // Produces: OR group_id NOT IN (1, 2, 3)
+
+You can use subqueries instead of an array of values.
+
+    ::
+
+        $builder->orHavingNotIn('id', function(BaseBuilder $builder) {
+            return $builder->select('user_id')->from('users_jobs')->where('group_id', 3);
+        });
+
+        // Produces: OR "id" NOT IN (SELECT "user_id" FROM "users_jobs" WHERE "group_id" = 3)
+
+**$builder->havingLike()**
+
+This method enables you to generate **LIKE** clauses for HAVING part or the query, useful for doing
+searches.
+
+.. note:: All values passed to this method are escaped automatically.
+
+.. note:: All ``havingLike*`` method variations can be forced to perform case-insensitive searches by passing
+        a fifth parameter of ``true`` to the method. This will use platform-specific features where available
+        otherwise, will force the values to be lowercase, i.e. ``HAVING LOWER(column) LIKE '%search%'``. This
+        may require indexes to be made for ``LOWER(column)`` instead of ``column`` to be effective.
+
+#. **Simple key/value method:**
+
+	::
+
+		$builder->havingLike('title', 'match');
+		// Produces: HAVING `title` LIKE '%match%' ESCAPE '!'
+
+	If you use multiple method calls they will be chained together with
+	AND between them::
+
+		$builder->havingLike('title', 'match');
+		$builder->havingLike('body', 'match');
+		// HAVING `title` LIKE '%match%' ESCAPE '!' AND  `body` LIKE '%match% ESCAPE '!'
+
+	If you want to control where the wildcard (%) is placed, you can use
+	an optional third argument. Your options are 'before', 'after' and
+	'both' (which is the default).
+
+	::
+
+		$builder->havingLike('title', 'match', 'before');	// Produces: HAVING `title` LIKE '%match' ESCAPE '!'
+		$builder->havingLike('title', 'match', 'after');	// Produces: HAVING `title` LIKE 'match%' ESCAPE '!'
+		$builder->havingLike('title', 'match', 'both');	// Produces: HAVING `title` LIKE '%match%' ESCAPE '!'
+
+#. **Associative array method:**
+
+	::
+
+		$array = ['title' => $match, 'page1' => $match, 'page2' => $match];
+		$builder->havingLike($array);
+		// HAVING `title` LIKE '%match%' ESCAPE '!' AND  `page1` LIKE '%match%' ESCAPE '!' AND  `page2` LIKE '%match%' ESCAPE '!'
+
+**$builder->orHavingLike()**
+
+This method is identical to the one above, except that multiple
+instances are joined by OR::
+
+	$builder->havingLike('title', 'match'); $builder->orHavingLike('body', $match);
+	// HAVING `title` LIKE '%match%' ESCAPE '!' OR  `body` LIKE '%match%' ESCAPE '!'
+
+**$builder->notHavingLike()**
+
+This method is identical to ``havingLike()``, except that it generates
+NOT LIKE statements::
+
+	$builder->notHavingLike('title', 'match');	// HAVING `title` NOT LIKE '%match% ESCAPE '!'
+
+**$builder->orNotHavingLike()**
+
+This method is identical to ``notHavingLike()``, except that multiple
+instances are joined by OR::
+
+	$builder->havingLike('title', 'match');
+	$builder->orNotHavingLike('body', 'match');
+	// HAVING `title` LIKE '%match% OR  `body` NOT LIKE '%match%' ESCAPE '!'
 
 ****************
 Ordering results
@@ -649,6 +801,26 @@ Starts a new group by adding an opening parenthesis to the WHERE clause of the q
 
 Ends the current group by adding a closing parenthesis to the WHERE clause of the query.
 
+**$builder->groupHavingStart()**
+
+Starts a new group by adding an opening parenthesis to the HAVING clause of the query.
+
+**$builder->orGroupHavingStart()**
+
+Starts a new group by adding an opening parenthesis to the HAVING clause of the query, prefixing it with 'OR'.
+
+**$builder->notGroupHavingStart()**
+
+Starts a new group by adding an opening parenthesis to the HAVING clause of the query, prefixing it with 'NOT'.
+
+**$builder->orNotGroupHavingStart()**
+
+Starts a new group by adding an opening parenthesis to the HAVING clause of the query, prefixing it with 'OR NOT'.
+
+**$builder->groupHavingEnd()**
+
+Ends the current group by adding a closing parenthesis to the HAVING clause of the query.
+
 **************
 Inserting Data
 **************
@@ -687,6 +859,22 @@ Here is an example using an object::
 The first parameter is an object.
 
 .. note:: All values are escaped automatically producing safer queries.
+
+**$builder->ignore()**
+
+Generates an insert ignore string based on the data you supply, and runs the
+query. So if an entry with the same primary key already exists, the query won't be inserted.
+You can optionally pass an **boolean** to the function. Here is an example using the array of the above example::
+
+	$data = [
+		'title' => 'My title',
+		'name'  => 'My Name',
+		'date'  => 'My date'
+	];
+
+	$builder->ignore(true)->insert($data);
+	// Produces: INSERT OR IGNORE INTO mytable (title, name, date) VALUES ('My title', 'My name', 'My date')
+
 
 **$builder->getCompiledInsert()**
 
@@ -970,7 +1158,7 @@ the data to the first parameter of the function::
 	// WHERE id = $id
 
 If you want to delete all data from a table, you can use the truncate()
-function, or empty_table().
+function, or emptyTable().
 
 **$builder->emptyTable()**
 
@@ -1046,7 +1234,7 @@ run the query::
 Class Reference
 ***************
 
-.. php:class:: \CodeIgniter\Database\BaseBuilder
+.. php:class:: CodeIgniter\\Database\\BaseBuilder
 
 	.. php:method:: resetQuery()
 
@@ -1074,21 +1262,23 @@ Class Reference
 		Generates a platform-specific query string that counts
 		all records returned by an Query Builder query.
 
-	.. php:method:: get([$limit = NULL[, $offset = NULL]])
+	.. php:method:: get([$limit = NULL[, $offset = NULL[, $reset = TRUE]]]])
 
 		:param	int	$limit: The LIMIT clause
 		:param	int	$offset: The OFFSET clause
+		:param 	bool $reset: Do we want to clear query builder values?
 		:returns:	\CodeIgniter\Database\ResultInterface instance (method chaining)
 		:rtype:	\CodeIgniter\Database\ResultInterface
 
 		Compiles and runs SELECT statement based on the already
 		called Query Builder methods.
 
-	.. php:method:: getWhere([$where = NULL[, $limit = NULL[, $offset = NULL]]])
+	.. php:method:: getWhere([$where = NULL[, $limit = NULL[, $offset = NULL[, $reset = TRUE]]]]])
 
 		:param	string	$where: The WHERE clause
 		:param	int	$limit: The LIMIT clause
 		:param	int	$offset: The OFFSET clause
+		:param 	bool $reset: Do we want to clear query builder values?
 		:returns:	\CodeIgniter\Database\ResultInterface instance (method chaining)
 		:rtype:	\CodeIgniter\Database\ResultInterface
 
@@ -1139,6 +1329,15 @@ Class Reference
 
 		Adds a SELECT SUM(field) clause to a query.
 
+	.. php:method:: selectCount([$select = ''[, $alias = '']])
+
+		:param	string	$select: Field to compute the average of
+		:param	string	$alias: Alias for the resulting value name
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Adds a SELECT COUNT(field) clause to a query.
+
 	.. php:method:: distinct([$val = TRUE])
 
 		:param	bool	$val: Desired value of the "distinct" flag
@@ -1148,11 +1347,12 @@ Class Reference
 		Sets a flag which tells the query builder to add
 		a DISTINCT clause to the SELECT portion of the query.
 
-	.. php:method:: from($from)
+	.. php:method:: from($from[, $overwrite = FALSE])
 
-		:param	mixed	$from: Table name(s); string or array
-		:returns:	BaseBuilder instance (method chaining)
-		:rtype:	BaseBuilder
+                :param	mixed	$from: Table name(s); string or array
+                :param	bool	$overwrite: Should we remove the first table existing?
+                :returns:	BaseBuilder instance (method chaining)
+                :rtype:	BaseBuilder
 
 		Specifies the FROM clause of a query.
 
@@ -1268,45 +1468,49 @@ Class Reference
 
 		Ends a group expression.
 
-	.. php:method:: like($field[, $match = ''[, $side = 'both'[, $escape = NULL]]])
+	.. php:method:: like($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
 
 		:param	string	$field: Field name
 		:param	string	$match: Text portion to match
 		:param	string	$side: Which side of the expression to put the '%' wildcard on
 		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
 		:returns:	BaseBuilder instance (method chaining)
 		:rtype:	BaseBuilder
 
 		Adds a LIKE clause to a query, separating multiple calls with AND.
 
-	.. php:method:: orLike($field[, $match = ''[, $side = 'both'[, $escape = NULL]]])
+	.. php:method:: orLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
 
 		:param	string	$field: Field name
 		:param	string	$match: Text portion to match
 		:param	string	$side: Which side of the expression to put the '%' wildcard on
 		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
 		:returns:	BaseBuilder instance (method chaining)
 		:rtype:	BaseBuilder
 
 		Adds a LIKE clause to a query, separating multiple class with OR.
 
-	.. php:method:: notLike($field[, $match = ''[, $side = 'both'[, $escape = NULL]]])
+	.. php:method:: notLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
 
 		:param	string	$field: Field name
 		:param	string	$match: Text portion to match
 		:param	string	$side: Which side of the expression to put the '%' wildcard on
 		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
 		:returns:	BaseBuilder instance (method chaining)
 		:rtype:	BaseBuilder
 
 		Adds a NOT LIKE clause to a query, separating multiple calls with AND.
 
-	.. php:method:: orNotLike($field[, $match = ''[, $side = 'both'[, $escape = NULL]]])
+	.. php:method:: orNotLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
 
 		:param	string	$field: Field name
 		:param	string	$match: Text portion to match
 		:param	string	$side: Which side of the expression to put the '%' wildcard on
 		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
 		:returns:	BaseBuilder instance (method chaining)
 		:rtype:	BaseBuilder
 
@@ -1331,6 +1535,133 @@ Class Reference
 		:rtype:	BaseBuilder
 
 		Adds a HAVING clause to a query, separating multiple calls with OR.
+
+	.. php:method:: orHavingIn([$key = NULL[, $values = NULL[, $escape = NULL]]])
+
+		:param	string	        $key: The field to search
+		:param	array|Closure   $values: Array of target values, or anonymous function for subquery
+		:param	bool	        $escape: Whether to escape values and identifiers
+		:returns:	BaseBuilder instance
+		:rtype:	object
+
+		Generates a HAVING field IN('item', 'item') SQL query,
+                joined with 'OR' if appropriate.
+
+	.. php:method:: orHavingNotIn([$key = NULL[, $values = NULL[, $escape = NULL]]])
+
+		:param	string	        $key: The field to search
+		:param	array|Closure   $values: Array of target values, or anonymous function for subquery
+		:param	bool	        $escape: Whether to escape values and identifiers
+		:returns:	BaseBuilder instance
+		:rtype:	object
+
+		Generates a HAVING field NOT IN('item', 'item') SQL query,
+                joined with 'OR' if appropriate.
+
+	.. php:method:: havingIn([$key = NULL[, $values = NULL[, $escape = NULL]]])
+
+		:param	string	        $key: Name of field to examine
+		:param	array|Closure   $values: Array of target values, or anonymous function for subquery
+		:param	bool            $escape: Whether to escape values and identifiers
+		:returns:	BaseBuilder instance
+		:rtype:	object
+
+		Generates a HAVING field IN('item', 'item') SQL query,
+                joined with 'AND' if appropriate.
+
+	.. php:method:: havingNotIn([$key = NULL[, $values = NULL[, $escape = NULL]]])
+
+		:param	string	        $key: Name of field to examine
+		:param	array|Closure   $values: Array of target values, or anonymous function for subquery
+		:param	bool	        $escape: Whether to escape values and identifiers
+		:param	bool            $insensitiveSearch: Whether to force a case-insensitive search
+		:returns:	BaseBuilder instance
+		:rtype:	object
+
+		Generates a HAVING field NOT IN('item', 'item') SQL query,
+                joined with 'AND' if appropriate.
+
+	.. php:method:: havingLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
+
+		:param	string	$field: Field name
+		:param	string	$match: Text portion to match
+		:param	string	$side: Which side of the expression to put the '%' wildcard on
+		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Adds a LIKE clause to a HAVING part of the query, separating multiple calls with AND.
+
+	.. php:method:: orHavingLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
+
+		:param	string	$field: Field name
+		:param	string	$match: Text portion to match
+		:param	string	$side: Which side of the expression to put the '%' wildcard on
+		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Adds a LIKE clause to a HAVING part of the query, separating multiple class with OR.
+
+	.. php:method:: notHavingLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
+
+		:param	string	$field: Field name
+		:param	string	$match: Text portion to match
+		:param	string	$side: Which side of the expression to put the '%' wildcard on
+		:param	bool	$escape: Whether to escape values and identifiers
+		:param	bool    $insensitiveSearch: Whether to force a case-insensitive search
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Adds a NOT LIKE clause to a HAVING part of the query, separating multiple calls with AND.
+
+	.. php:method:: orNotHavingLike($field[, $match = ''[, $side = 'both'[, $escape = NULL[, $insensitiveSearch = FALSE]]]])
+
+		:param	string	$field: Field name
+		:param	string	$match: Text portion to match
+		:param	string	$side: Which side of the expression to put the '%' wildcard on
+		:param	bool	$escape: Whether to escape values and identifiers
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Adds a NOT LIKE clause to a HAVING part of the query, separating multiple calls with OR.
+
+	.. php:method:: havingGroupStart()
+
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Starts a group expression for HAVING clause, using ANDs for the conditions inside it.
+
+	.. php:method:: orHavingGroupStart()
+
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Starts a group expression for HAVING clause, using ORs for the conditions inside it.
+
+	.. php:method:: notHavingGroupStart()
+
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Starts a group expression for HAVING clause, using AND NOTs for the conditions inside it.
+
+	.. php:method:: orNotHavingGroupStart()
+
+		:returns:	BaseBuilder instance (method chaining)
+		:rtype:	BaseBuilder
+
+		Starts a group expression for HAVING clause, using OR NOTs for the conditions inside it.
+
+	.. php:method:: havingGroupEnd()
+
+		:returns:	BaseBuilder instance
+		:rtype:	object
+
+		Ends a group expression for HAVING clause.
 
 	.. php:method:: groupBy($by[, $escape = NULL])
 

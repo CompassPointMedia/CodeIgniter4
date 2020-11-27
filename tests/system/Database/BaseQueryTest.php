@@ -1,14 +1,14 @@
 <?php namespace CodeIgniter\Database;
 
-use Tests\Support\Database\MockConnection;
+use CodeIgniter\Test\Mock\MockConnection;
 
-class QueryTest extends \CIUnitTestCase
+class QueryTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	protected $db;
 
 	//--------------------------------------------------------------------
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -313,6 +313,25 @@ class QueryTest extends \CIUnitTestCase
 		$query->setQuery('UPDATE user_table SET `x` = NOW() WHERE `id` = :id:', $binds, false);
 
 		$expected = 'UPDATE user_table SET `x` = NOW() WHERE `id` = 22';
+
+		$this->assertEquals($expected, $query->getQuery());
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/2762
+	 */
+	public function testSetQueryBinds()
+	{
+		$query = new Query($this->db);
+
+		$binds = [
+			1,
+			2,
+		];
+
+		$query->setQuery('SELECT @factorA := ?, @factorB := ?', $binds);
+
+		$expected = 'SELECT @factorA := 1, @factorB := 2';
 
 		$this->assertEquals($expected, $query->getQuery());
 	}

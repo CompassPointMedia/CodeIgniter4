@@ -7,6 +7,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2014-2017 British Columbia Institute of Technology
+ * Copyright (c) 2019-2020 CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +64,7 @@ class OpenSSLHandler extends BaseHandler
 	 *
 	 * @param BaseConfig $config
 	 *
-	 * @throws \CodeIgniter\Encryption\EncryptionException
+	 * @throws \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function __construct(BaseConfig $config = null)
 	{
@@ -76,7 +77,7 @@ class OpenSSLHandler extends BaseHandler
 	 * @param  string $data   Input data
 	 * @param  array  $params Over-ridden parameters, specifically the key
 	 * @return string
-	 * @throws \CodeIgniter\Encryption\EncryptionException
+	 * @throws \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function encrypt($data, $params = null)
 	{
@@ -113,9 +114,8 @@ class OpenSSLHandler extends BaseHandler
 		$result = $iv . $data;
 
 		$hmacKey = \hash_hmac($this->digest, $result, $secret, true);
-		$result  = $hmacKey . $result;
 
-		return $result;
+		return $hmacKey . $result;
 	}
 
 	// --------------------------------------------------------------------
@@ -126,7 +126,7 @@ class OpenSSLHandler extends BaseHandler
 	 * @param  string $data   Encrypted data
 	 * @param  array  $params Over-ridden parameters, specifically the key
 	 * @return string
-	 * @throws \CodeIgniter\Encryption\EncryptionException
+	 * @throws \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function decrypt($data, $params = null)
 	{
@@ -144,7 +144,7 @@ class OpenSSLHandler extends BaseHandler
 		}
 		if (empty($this->key))
 		{
-			throw EncryptionException::forStarterKeyNeeded();
+			throw EncryptionException::forNeedsStarterKey();
 		}
 
 		// derive a secret key
