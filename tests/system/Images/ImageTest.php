@@ -3,12 +3,12 @@
 use CodeIgniter\Images\Exceptions\ImageException;
 use org\bovigo\vfs\vfsStream;
 
-class ImageTest extends \CIUnitTestCase
+class ImageTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	protected $path = 'tests/_support/ci-logo.png';
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		// create virtual file system
 		$this->root = vfsStream::setup();
@@ -73,6 +73,13 @@ class ImageTest extends \CIUnitTestCase
 	{
 		$this->image->copy($this->root->url(), 'new-logo.png');
 		$this->assertTrue($this->root->hasChild('new-logo.png'));
+	}
+
+	public function testCopyNewFolder()
+	{
+		$targetPath = $this->start . 'work/subfolder';
+		$this->image->copy($targetPath, 'new-logo.png');
+		$this->assertTrue($this->root->hasChild('work/subfolder/new-logo.png'));
 	}
 
 	public function testCopyNowhere()

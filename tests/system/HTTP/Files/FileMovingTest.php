@@ -1,13 +1,13 @@
 <?php
 namespace CodeIgniter\HTTP\Files;
 
-use org\bovigo\vfs\vfsStream;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
+use org\bovigo\vfs\vfsStream;
 
-class FileMovingTest extends \CIUnitTestCase
+class FileMovingTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -25,7 +25,7 @@ class FileMovingTest extends \CIUnitTestCase
 		$_FILES = [];
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 		$this->root = null;

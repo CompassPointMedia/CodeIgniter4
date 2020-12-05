@@ -1,7 +1,7 @@
 <?php
 namespace CodeIgniter\Helpers;
 
-final class DateHelperTest extends \CIUnitTestCase
+final class DateHelperTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	private $name;
@@ -9,7 +9,7 @@ final class DateHelperTest extends \CIUnitTestCase
 	private $expire;
 	private $response;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 		helper('date');

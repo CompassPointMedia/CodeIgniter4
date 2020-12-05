@@ -1,21 +1,23 @@
 <?php
+
 namespace CodeIgniter\Encryption;
 
-use Config\Services;
-use CodeIgniter\Config\BaseConfig;
+use CodeIgniter\Encryption\Encryption;
+use CodeIgniter\Test\CIUnitTestCase;
 use Config\Encryption as EncryptionConfig;
+use Config\Services;
 
-//use CodeIgniter\Encryption\Encryption;
-
-class EncryptionTest extends \CIUnitTestCase
+class EncryptionTest extends CIUnitTestCase
 {
+	/**
+	 * @var \CodeIgniter\Encryption\Encryption
+	 */
+	protected $encryption;
 
-	public function setUp()
+	protected function setUp(): void
 	{
-		$this->encryption = new \CodeIgniter\Encryption\Encryption();
+		$this->encryption = new Encryption();
 	}
-
-	// --------------------------------------------------------------------
 
 	/**
 	 * __construct test
@@ -28,48 +30,46 @@ class EncryptionTest extends \CIUnitTestCase
 		$this->assertEmpty($this->encryption->key);
 
 		// Try with an empty value
-		$config        = new EncryptionConfig();
-		$this->encrypt = new \CodeIgniter\Encryption\Encryption($config);
-		$this->assertEmpty($this->encrypt->key);
+		$config           = new EncryptionConfig();
+		$this->encryption = new Encryption($config);
+		$this->assertEmpty($this->encryption->key);
 
 		// try a different key
-		$ikm           = 'Secret stuff';
-		$config->key   = $ikm;
-		$this->encrypt = new \CodeIgniter\Encryption\Encryption($config);
-		$this->assertEquals($ikm, $this->encrypt->key);
+		$ikm              = 'Secret stuff';
+		$config->key      = $ikm;
+		$this->encryption = new Encryption($config);
+		$this->assertEquals($ikm, $this->encryption->key);
 	}
 
 	/**
 	 * Covers behavior with invalid parameters
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testBadDriver()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		// ask for a bad driver
 		$config         = new EncryptionConfig();
 		$config->driver = 'Bogus';
 		$config->key    = 'anything';
 
-		$encrypter = $this->encryption->initialize($config);
+		$this->encryption->initialize($config);
 	}
 
 	/**
 	 * Covers behavior with invalid parameters
-	 *
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
 	 */
 	public function testMissingDriver()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		// ask for a bad driver
 		$config         = new EncryptionConfig();
 		$config->driver = '';
 		$config->key    = 'anything';
 
-		$encrypter = $this->encryption->initialize($config);
+		$this->encryption->initialize($config);
 	}
-
-	// --------------------------------------------------------------------
 
 	public function testKeyCreation()
 	{
@@ -77,13 +77,6 @@ class EncryptionTest extends \CIUnitTestCase
 		$this->assertEquals(32, strlen($this->encryption->createKey()));
 		$this->assertEquals(16, strlen($this->encryption->createKey(16)));
 	}
-
-	public function testBogusProperty()
-	{
-		$this->assertNull($this->encryption->bogus);
-	}
-
-	// --------------------------------------------------------------------
 
 	public function testServiceSuccess()
 	{
@@ -95,25 +88,23 @@ class EncryptionTest extends \CIUnitTestCase
 		$this->assertInstanceOf(EncrypterInterface::class, $encrypter);
 	}
 
-	/**
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
-	 */
 	public function testServiceFailure()
 	{
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
 		// ask for a bad driver
 		$config         = new EncryptionConfig();
 		$config->driver = 'Kazoo';
 		$config->key    = 'anything';
 
-		$encrypter = Services::encrypter($config);
+		Services::encrypter($config);
 	}
 
-	/**
-	 * @expectedException \CodeIgniter\Encryption\Exceptions\EncryptionException
-	 */
 	public function testServiceWithoutKey()
 	{
-		$encrypter = Services::encrypter();
+		$this->expectException('CodeIgniter\Encryption\Exceptions\EncryptionException');
+
+		Services::encrypter();
 	}
 
 	public function testServiceShared()
@@ -129,4 +120,23 @@ class EncryptionTest extends \CIUnitTestCase
 		$this->assertEquals('anything', $encrypter->key);
 	}
 
+	public function testMagicIssetTrue()
+	{
+		$this->assertTrue(isset($this->encryption->digest));
+	}
+
+	public function testMagicIssetFalse()
+	{
+		$this->assertFalse(isset($this->encryption->bogus));
+	}
+
+	public function testMagicGet()
+	{
+		$this->assertEquals('SHA512', $this->encryption->digest);
+	}
+
+	public function testMagicGetMissing()
+	{
+		$this->assertNull($this->encryption->bogus);
+	}
 }

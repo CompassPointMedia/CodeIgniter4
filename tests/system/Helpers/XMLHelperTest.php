@@ -2,10 +2,10 @@
 
 namespace CodeIgniter\Helpers;
 
-class XMLHelperTest extends \CIUnitTestCase
+class XMLHelperTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

@@ -1,12 +1,21 @@
-<?php namespace CodeIgniter\Exceptions;
+<?php
+
+/**
+ * This file is part of the CodeIgniter 4 framework.
+ *
+ * (c) CodeIgniter Foundation <admin@codeigniter.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace CodeIgniter\Exceptions;
 
 /**
  * Exception for automatic logging.
  */
-
 class ConfigException extends CriticalError
 {
-
 	/**
 	 * Error code
 	 *
@@ -16,6 +25,6 @@ class ConfigException extends CriticalError
 
 	public static function forDisabledMigrations()
 	{
-		throw new static(lang('Migrations.disabled'));
+		return new static(lang('Migrations.disabled'));
 	}
 }

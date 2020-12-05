@@ -1,7 +1,7 @@
 <?php namespace CodeIgniter\Database\Live\SQLite;
 
-use CodeIgniter\Test\CIDatabaseTestCase;
 use CodeIgniter\Database\SQLite3\Table;
+use CodeIgniter\Test\CIDatabaseTestCase;
 use Config\Database;
 
 /**
@@ -26,13 +26,13 @@ class AlterTableTest extends CIDatabaseTestCase
 	 */
 	protected $forge;
 
-	public function setUp()
+	public function setUp(): void
 	{
 		parent::setUp();
 
 		$config = [
 			'DBDriver' => 'SQLite3',
-			'database' => ':memory:',
+			'database' => 'database.db',
 		];
 
 		$this->db    = db_connect($config);
@@ -40,7 +40,7 @@ class AlterTableTest extends CIDatabaseTestCase
 		$this->table = new Table($this->db, $this->forge);
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		parent::tearDown();
 
@@ -48,12 +48,11 @@ class AlterTableTest extends CIDatabaseTestCase
 		$this->forge->dropTable('foo_fk', true);
 	}
 
-	/**
-	 * @expectedException        \CodeIgniter\Database\Exceptions\DataException
-	 * @expectedExceptionMessage Table `foo` was not found in the current database.
-	 */
 	public function testFromTableThrowsOnNoTable()
 	{
+		$this->expectException('CodeIgniter\Database\Exceptions\DataException');
+		$this->expectExceptionMessage('Table `foo` was not found in the current database.');
+
 		$this->table->fromTable('foo');
 	}
 

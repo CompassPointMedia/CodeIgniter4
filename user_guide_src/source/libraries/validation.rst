@@ -64,11 +64,11 @@ The Form
 Using a text editor, create a form called **Signup.php**. In it, place this
 code and save it to your **app/Views/** folder::
 
-	<html>
-	<head>
-	    <title>My Form</title>
-	</head>
-	<body>
+    <html>
+    <head>
+        <title>My Form</title>
+    </head>
+    <body>
 
         <?= $validation->listErrors() ?>
 
@@ -90,8 +90,8 @@ code and save it to your **app/Views/** folder::
 
         </form>
 
-	</body>
-	</html>
+    </body>
+    </html>
 
 The Success Page
 ================================================
@@ -99,18 +99,18 @@ The Success Page
 Using a text editor, create a form called **Success.php**. In it, place
 this code and save it to your **app/Views/** folder::
 
-	<html>
-	<head>
-	    <title>My Form</title>
-	</head>
-	<body>
+    <html>
+    <head>
+        <title>My Form</title>
+    </head>
+    <body>
 
         <h3>Your form was successfully submitted!</h3>
 
         <p><?= anchor('form', 'Try it again!') ?></p>
 
-	</body>
-	</html>
+    </body>
+    </html>
 
 The Controller
 ================================================
@@ -118,43 +118,43 @@ The Controller
 Using a text editor, create a controller called **Form.php**. In it, place
 this code and save it to your **app/Controllers/** folder::
 
-	<?php namespace App\Controllers;
+    <?php namespace App\Controllers;
 
-	use CodeIgniter\Controller;
+    use CodeIgniter\Controller;
 
-	class Form extends Controller
-	{
-		public function index()
-		{
-			helper(['form', 'url']);
+    class Form extends Controller
+    {
+        public function index()
+        {
+            helper(['form', 'url']);
 
-			if (! $this->validate([]))
-			{
-				echo view('Signup', [
-					'validation' => $this->validation
-				]);
-			}
-			else
-			{
-				echo view('Success');
-			}
-		}
-	}
+            if (! $this->validate([]))
+            {
+                echo view('Signup', [
+                    'validation' => $this->validator
+                ]);
+            }
+            else
+            {
+                echo view('Success');
+            }
+        }
+    }
 
 Try it!
 ================================================
 
 To try your form, visit your site using a URL similar to this one::
 
-	example.com/index.php/form/
+    example.com/index.php/form/
 
 If you submit the form you should simply see the form reload. That's
 because you haven't set up any validation rules yet.
 
-**Since you haven't told the Validation class to validate anything
-yet, it returns false (boolean false) by default. The** ``validate()`` **method
-only returns true if it has successfully applied your rules without any
-of them failing.**
+.. note:: Since you haven't told the **Validation class** to validate anything
+    yet, it **returns false** (boolean false) **by default**. The ``validate()``
+    method only returns true if it has successfully applied your rules without
+    any of them failing.
 
 Explanation
 ================================================
@@ -171,7 +171,7 @@ The form (Signup.php) is a standard web form with a couple of exceptions:
 #. At the top of the form you'll notice the following function call:
    ::
 
-	<?= $validation->listErrors() ?>
+    <?= $validation->listErrors() ?>
 
    This function will return any error messages sent back by the
    validator. If there are no messages it returns an empty string.
@@ -226,7 +226,7 @@ Like, ``setRule()``, but accepts an array of field names and their rules::
         'password' => 'required|min_length[10]'
     ]);
 
-To give a labeled error message you can setup as::
+To give a labeled error message you can set up as::
 
     $validation->setRules([
         'username' => ['label' => 'Username', 'rules' => 'required'],
@@ -281,6 +281,20 @@ You can use the '*' wildcard symbol to match any one level of the array::
     // Fred Flintsone & Wilma
     $validation->setRules([
         'contacts.*.name' => 'required'
+    ]);
+
+"dot array syntax" can also be useful when you have single dimension array data.
+For example, data returned by multi select dropdown::
+
+    // The data to test:
+    'user_ids' => [
+        1,
+        2,
+        3
+    ]
+    // Rule
+    $validation->setRules([
+        'user_ids.*' => 'required'
     ]);
 
 Validate 1 Value
@@ -350,19 +364,17 @@ Or pass all settings in an array::
     {
         public $signup = [
             'username' => [
-                'label'  => 'Username',
                 'rules'  => 'required',
                 'errors' => [
-                    'required' => 'You must choose a {field}.'
+                    'required' => 'You must choose a Username.'
                 ]
             ],
-            'email'    => 'required|valid_email'
-        ];
-
-        public $signup_errors = [
-            'email' => [
-                'valid_email' => 'Please check the Email field. It does not appear to be valid.'
-            ]
+            'email'    => [
+                'rules'  => 'required|valid_email',
+                'errors' => [
+                    'valid_email' => 'Please check the Email field. It does not appear to be valid.'
+                ]
+            ],
         ];
     }
 
@@ -382,6 +394,57 @@ This method gets a rule group from the validation configuration::
 This method sets a rule group from the validation configuration to the validation service::
 
     $validation->setRuleGroup('signup');
+
+Running Multiple Validations
+=======================================================
+
+.. note:: ``run()`` method will not reset error state. Should a previous run fail,
+   ``run()`` will always return false and ``getErrors()`` will return
+   all previous errors until explicitly reset.
+
+If you intend to run multiple validations, for instance on different data sets or with different
+rules after one another, you might need to call ``$validation->reset()`` before each run to get rid of
+errors from previous run. Be aware that ``reset()`` will invalidate any data, rule or custom error
+you previously set, so ``setRules()``, ``setRuleGroup()`` etc. need to be repeated::
+
+    for ($userAccounts as $user) {
+        $validation->reset();
+        $validation->setRules($userAccountRules);
+        if (!$validation->run($user)) {
+            // handle validation errors
+        }
+    }
+
+Validation Placeholders
+=======================================================
+
+The Validation class provides a simple method to replace parts of your rules based on data that's being passed into it. This
+sounds fairly obscure but can be especially handy with the ``is_unique`` validation rule. Placeholders are simply
+the name of the field (or array key) that was passed in as $data surrounded by curly brackets. It will be
+replaced by the **value** of the matched incoming field. An example should clarify this::
+
+    $validation->setRules([
+        'email' => 'required|valid_email|is_unique[users.email,id,{id}]'
+    ]);
+
+In this set of rules, it states that the email address should be unique in the database, except for the row
+that has an id matching the placeholder's value. Assuming that the form POST data had the following::
+
+    $_POST = [
+        'id' => 4,
+        'email' => 'foo@example.com'
+    ];
+
+then the ``{id}`` placeholder would be replaced with the number **4**, giving this revised rule::
+
+    $validation->setRules([
+        'email' => 'required|valid_email|is_unique[users.email,id,4]'
+    ]);
+
+So it will ignore the row in the database that has ``id=4`` when it verifies the email is unique.
+
+This can also be used to create more dynamic rules at runtime, as long as you take care that any dynamic
+keys passed in don't conflict with your form data.
 
 Working With Errors
 ************************************************
@@ -441,14 +504,39 @@ Or as a labeled style::
     );
 
 If you’d like to include a field’s “human” name, or the optional parameter some rules allow for (such as max_length),
-you can add the ``{field}`` and ``{param}`` tags to your message, respectively::
+or the value that was validated you can add the ``{field}``, ``{param}`` and ``{value}`` tags to your message, respectively::
 
-    'min_length' => '{field} must have at least {param} characters.'
+    'min_length' => 'Supplied value ({value}) for {field} must have at least {param} characters.'
 
-On a field with the human name Username and a rule of min_length[5], an error would display: “Username must have
-at least 5 characters.”
+On a field with the human name Username and a rule of min_length[6] with a value of “Pizza”, an error would display: “Supplied value (Pizza) for Username must have
+at least 6 characters.”
 
 .. note:: If you pass the last parameter the labeled style error messages will be ignored.
+
+Translation Of Messages And Validation Labels
+=============================================
+
+To use translated strings from language files, we can simply use the dot syntax.
+Let's say we have a file with translations located here: ``app/Languages/en/Rules.php``.
+We can simply use the language lines defined in this file, like this::
+
+    $validation->setRules([
+            'username' => [
+                'label'  => 'Rules.username',
+                'rules'  => 'required|is_unique[users.username]',
+                'errors' => [
+                    'required' => 'Rules.username.required'
+                ]
+            ],
+            'password' => [
+                'label'  => 'Rules.password',
+                'rules'  => 'required|min_length[10]',
+                'errors' => [
+                    'min_length' => 'Rules.password.min_length'
+                ]
+            ]
+        ]
+    );
 
 Getting All Errors
 ==================
@@ -480,7 +568,7 @@ Check If Error Exists
 
 You can check to see if an error exists with the ``hasError()`` method. The only parameter is the field name::
 
-    if ($validation->hasError('username')
+    if ($validation->hasError('username'))
     {
         echo $validation->getError('username');
     }
@@ -554,10 +642,10 @@ autoloader can find it. These files are called RuleSets. To add a new RuleSet, e
 add the new file to the ``$ruleSets`` array::
 
     public $ruleSets = [
-		\CodeIgniter\Validation\Rules::class,
-		\CodeIgniter\Validation\FileRules::class,
-		\CodeIgniter\Validation\CreditCardRules::class,
-	];
+        \CodeIgniter\Validation\Rules::class,
+        \CodeIgniter\Validation\FileRules::class,
+        \CodeIgniter\Validation\CreditCardRules::class,
+    ];
 
 You can add it as either a simple string with the fully qualified class name, or using the ``::class`` suffix as
 shown above. The primary benefit here is that it provides some extra navigation capabilities in more advanced IDEs.
@@ -601,41 +689,41 @@ If your method needs to work with parameters, the function will need a minimum o
 the parameter string, and an array with all of the data that was submitted the form. The $data array is especially handy
 for rules like ``require_with`` that needs to check the value of another submitted field to base its result on::
 
-	public function required_with($str, string $fields, array $data): bool
-	{
-		$fields = explode(',', $fields);
+    public function required_with($str, string $fields, array $data): bool
+    {
+        $fields = explode(',', $fields);
 
-		// If the field is present we can safely assume that
-		// the field is here, no matter whether the corresponding
-		// search field is present or not.
-		$present = $this->required($str ?? '');
+        // If the field is present we can safely assume that
+        // the field is here, no matter whether the corresponding
+        // search field is present or not.
+        $present = $this->required($str ?? '');
 
-		if ($present)
-		{
-			return true;
-		}
+        if ($present)
+        {
+            return true;
+        }
 
         // Still here? Then we fail this test if
-		// any of the fields are present in $data
-		// as $fields is the lis
-		$requiredFields = [];
+        // any of the fields are present in $data
+        // as $fields is the lis
+        $requiredFields = [];
 
-		foreach ($fields as $field)
-		{
-			if (array_key_exists($field, $data))
-			{
-				$requiredFields[] = $field;
-			}
-		}
+        foreach ($fields as $field)
+        {
+            if (array_key_exists($field, $data))
+            {
+                $requiredFields[] = $field;
+            }
+        }
 
-		// Remove any keys with empty values since, that means they
-		// weren't truly there, as far as this is concerned.
-		$requiredFields = array_filter($requiredFields, function ($item) use ($data) {
-			return ! empty($data[$item]);
-		});
+        // Remove any keys with empty values since, that means they
+        // weren't truly there, as far as this is concerned.
+        $requiredFields = array_filter($requiredFields, function ($item) use ($data) {
+            return ! empty($data[$item]);
+        });
 
-		return empty($requiredFields);
-	}
+        return empty($requiredFields);
+    }
 
 Custom errors can be returned as the fourth parameter, just as described above.
 
@@ -644,32 +732,48 @@ Available Rules
 
 The following is a list of all the native rules that are available to use:
 
-.. note:: Rule is a string; there must be no spaces between the parameters, especially the "is_unique" rule.
-	There can be no spaces before and after "ignore_value".
+.. note:: Rule is a string; there must be **no spaces** between the parameters, especially the ``is_unique`` rule.
+    There can be no spaces before and after ``ignore_value``.
 
-- "is_unique[supplier.name,uuid, $uuid]"   is not ok
-- "is_unique[supplier.name,uuid,$uuid ]"   is not ok
-- "is_unique[supplier.name,uuid,$uuid]"    is ok
+::
+
+    // is_unique[table.field,ignore_field,ignore_value]
+
+    $validation->setRules([
+        'name' => "is_unique[supplier.name,uuid, $uuid]",  // is not ok
+        'name' => "is_unique[supplier.name,uuid,$uuid ]",  // is not ok
+        'name' => "is_unique[supplier.name,uuid,$uuid]",   // is ok
+        'name' => "is_unique[supplier.name,uuid,{uuid}]",  // is ok - see "Validation Placeholders"
+    ]);
+
 
 ======================= =========== =============================================================================================== ===================================================
 Rule                    Parameter   Description                                                                                     Example
 ======================= =========== =============================================================================================== ===================================================
 alpha                   No          Fails if field has anything other than alphabetic characters.
 alpha_space             No          Fails if field contains anything other than alphabetic characters or spaces.
-alpha_dash              No          Fails if field contains anything other than alpha-numeric characters, underscores or dashes.
-alpha_numeric           No          Fails if field contains anything other than alpha-numeric characters or numbers.
-alpha_numeric_space     No          Fails if field contains anything other than alpha-numeric characters, numbers or space.
+alpha_dash              No          Fails if field contains anything other than alphanumeric characters, underscores or dashes.
+alpha_numeric           No          Fails if field contains anything other than alphanumeric characters.
+alpha_numeric_space     No          Fails if field contains anything other than alphanumeric or space characters.
+alpha_numeric_punct     No          Fails if field contains anything other than alphanumeric, space, or this limited set of
+                                    punctuation characters: ~ (tilde), ! (exclamation), # (number), $ (dollar), % (percent),
+                                    & (ampersand), * (asterisk), - (dash), _ (underscore), + (plus), = (equals),
+                                    | (vertical bar), : (colon), . (period).
 decimal                 No          Fails if field contains anything other than a decimal number.
+                                    Also accepts a + or  - sign for the number.
 differs                 Yes         Fails if field does not differ from the one in the parameter.                                   differs[field_name]
 exact_length            Yes         Fails if field is not exactly the parameter value. One or more comma-separated values.          exact_length[5] or exact_length[5,8,12]
 greater_than            Yes         Fails if field is less than or equal to the parameter value or not numeric.                     greater_than[8]
 greater_than_equal_to   Yes         Fails if field is less than the parameter value, or not numeric.                                greater_than_equal_to[5]
+hex                     No          Fails if field contains anything other than hexadecimal characters.
 if_exist                No          If this rule is present, validation will only return possible errors if the field key exists,
                                     regardless of its value.
 in_list                 Yes         Fails if field is not within a predetermined list.                                              in_list[red,blue,green]
 integer                 No          Fails if field contains anything other than an integer.
 is_natural              No          Fails if field contains anything other than a natural number: 0, 1, 2, 3, etc.
 is_natural_no_zero      No          Fails if field contains anything other than a natural number, except zero: 1, 2, 3, etc.
+is_not_unique           Yes         Checks the database to see if the given value exist. Can ignore records by field/value to            is_not_unique[table.field,where_field,where_value]
+                                    filter (currently accept only one filter).
 is_unique               Yes         Checks if this field value exists in the database. Optionally set a                             is_unique[table.field,ignore_field,ignore_value]
                                     column and value to ignore, useful when updating records to ignore itself.
 less_than               Yes         Fails if field is greater than or equal to the parameter value or not numeric.                  less_than[8]
@@ -677,6 +781,7 @@ less_than_equal_to      Yes         Fails if field is greater than the parameter
 matches                 Yes         The value must match the value of the field in the parameter.                                   matches[field]
 max_length              Yes         Fails if field is longer than the parameter value.                                              max_length[8]
 min_length              Yes         Fails if field is shorter than the parameter value.                                             min_length[3]
+not_in_list             Yes         Fails if field is within a predetermined list.                                                  not_in_list[red,blue,green]
 numeric                 No          Fails if field contains anything other than numeric characters.
 regex_match             Yes         Fails if field does not match the regular expression.                                           regex_match[/regex/]
 permit_empty            No          Allows the field to receive an empty array, empty string, null or false.
@@ -725,7 +830,8 @@ Rule                    Parameter   Description                                 
 ======================= =========== =============================================================================================== ========================================
 uploaded                Yes         Fails if the name of the parameter does not match the name of any uploaded files.               uploaded[field_name]
 max_size                Yes         Fails if the uploaded file named in the parameter is larger than the second parameter in        max_size[field_name,2048]
-                                    kilobytes (kb).
+                                    kilobytes (kb). Or if the file is larger than allowed maximum size declared in
+                                    php.ini config file - ``upload_max_filesize`` directive.
 max_dims                Yes         Fails if the maximum width and height of an uploaded image exceed values. The first parameter   max_dims[field_name,300,150]
                                     is the field name. The second is the width, and the third is the height. Will also fail if
                                     the file cannot be determined to be an image.
@@ -734,6 +840,8 @@ ext_in                  Yes         Fails if the file's extension is not one lis
 is_image                Yes         Fails if the file cannot be determined to be an image based on the mime type.                   is_image[field_name]
 ======================= =========== =============================================================================================== ========================================
 
+The file validation rules apply for both single and multiple file uploads.
+
 .. note:: You can also use any native PHP functions that permit up
-	to two parameters, where at least one is required (to pass
-	the field data).
+    to two parameters, where at least one is required (to pass
+    the field data).

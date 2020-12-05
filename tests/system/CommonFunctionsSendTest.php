@@ -1,10 +1,10 @@
 <?php
 
 
-class CommonFunctionsSendTest extends \CIUnitTestCase
+class CommonFunctionsSendTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

@@ -3,7 +3,7 @@ namespace CodeIgniter\Router;
 
 use CodeIgniter\Config\Services;
 
-class RouterTest extends \CIUnitTestCase
+class RouterTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -23,7 +23,7 @@ class RouterTest extends \CIUnitTestCase
 	 */
 	protected $request;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -56,7 +56,7 @@ class RouterTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 	}
 
@@ -70,6 +70,17 @@ class RouterTest extends \CIUnitTestCase
 
 		$this->assertEquals($this->collection->getDefaultController(), $router->controllerName());
 		$this->assertEquals($this->collection->getDefaultMethod(), $router->methodName());
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testZeroAsURIPath()
+	{
+		$router = new Router($this->collection, $this->request);
+
+		$router->handle('0');
+
+		$this->assertEquals('0', $router->controllerName());
 	}
 
 	//--------------------------------------------------------------------
@@ -171,7 +182,7 @@ class RouterTest extends \CIUnitTestCase
 
 		$expects = $closure(...$router->params());
 
-		$this->assertInternalType('callable', $router->controllerName());
+		$this->assertIsCallable($router->controllerName());
 		$this->assertEquals($expects, '123-alpha');
 	}
 
@@ -506,6 +517,58 @@ class RouterTest extends \CIUnitTestCase
 		$expected = [
 			'0',
 			'abc',
+		];
+		$this->assertEquals($expected, $router->params());
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/2965
+	 */
+	public function testAutoRouteMethodEmpty()
+	{
+		$router = new Router($this->collection, $this->request);
+		$router->handle('Home/');
+		$this->assertEquals('Home', $router->controllerName());
+		$this->assertEquals('index', $router->methodName());
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3169
+	 */
+	public function testRegularExpressionWithUnicode()
+	{
+		$this->collection->get('news/([a-z0-9\x{0980}-\x{09ff}-]+)', 'News::view/$1');
+
+		$router = new Router($this->collection, $this->request);
+
+		$router->handle('news/a0%E0%A6%80%E0%A7%BF-');
+		$this->assertEquals('\News', $router->controllerName());
+		$this->assertEquals('view', $router->methodName());
+
+		$expected = [
+			'a0ঀ৿-',
+		];
+		$this->assertEquals($expected, $router->params());
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3169
+	 */
+	public function testRegularExpressionPlaceholderWithUnicode()
+	{
+		$this->collection->addPlaceholder('custom', '[a-z0-9\x{0980}-\x{09ff}-]+');
+		$this->collection->get('news/(:custom)', 'News::view/$1');
+
+		$router = new Router($this->collection, $this->request);
+
+		$router->handle('news/a0%E0%A6%80%E0%A7%BF-');
+		$this->assertEquals('\News', $router->controllerName());
+		$this->assertEquals('view', $router->methodName());
+
+		$expected = [
+			'a0ঀ৿-',
 		];
 		$this->assertEquals($expected, $router->params());
 	}

@@ -36,7 +36,7 @@
  * @filesource
  */
 
-class RedisHandlerTest extends \CIUnitTestCase
+class RedisHandlerTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	private $redisHandler;
 	private static $key1 = 'key1';
@@ -54,7 +54,7 @@ class RedisHandlerTest extends \CIUnitTestCase
 	private static $dummy = 'dymmy';
 	private $config;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -69,7 +69,7 @@ class RedisHandlerTest extends \CIUnitTestCase
 		$this->redisHandler->initialize();
 	}
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 		foreach (self::getKeyArray() as $key)
 		{
@@ -92,12 +92,12 @@ class RedisHandlerTest extends \CIUnitTestCase
 
 	public function testGet()
 	{
-		$this->redisHandler->save(self::$key1, 'value', 1);
+		$this->redisHandler->save(self::$key1, 'value', 2);
 
 		$this->assertSame('value', $this->redisHandler->get(self::$key1));
 		$this->assertNull($this->redisHandler->get(self::$dummy));
 
-		\CodeIgniter\CLI\CLI::wait(2);
+		\CodeIgniter\CLI\CLI::wait(3);
 		$this->assertNull($this->redisHandler->get(self::$key1));
 	}
 
@@ -135,7 +135,7 @@ class RedisHandlerTest extends \CIUnitTestCase
 	{
 		$this->redisHandler->save(self::$key1, 'value');
 
-		$this->assertInternalType('array', $this->redisHandler->getCacheInfo());
+		$this->assertIsArray($this->redisHandler->getCacheInfo());
 	}
 
 	public function testGetMetaData()

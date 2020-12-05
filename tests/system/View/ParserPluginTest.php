@@ -1,6 +1,6 @@
 <?php
 
-class ParserPluginTest extends \CIUnitTestCase
+class ParserPluginTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 	/**
 	 * @var \CodeIgniter\View\Parser
@@ -11,7 +11,7 @@ class ParserPluginTest extends \CIUnitTestCase
 	 */
 	protected $validator;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
@@ -46,6 +46,17 @@ class ParserPluginTest extends \CIUnitTestCase
 		$template = '{+ mailto email=foo@example.com title=Silly +}';
 
 		$this->assertEquals(mailto('foo@example.com', 'Silly'), $this->parser->renderString($template));
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/3523
+	 */
+	public function testMailtoWithDashAndParenthesis()
+	{
+		helper('url');
+		$template = '{+ mailto email=foo-bar@example.com title="Scilly (the Great)" +}';
+
+		$this->assertSame(mailto('foo-bar@example.com', 'Scilly (the Great)'), $this->parser->renderString($template));
 	}
 
 	public function testSafeMailto()

@@ -2,13 +2,14 @@
 
 namespace CodeIgniter\HTTP;
 
-use Config\App;
+use CodeIgniter\Config\Config;
 use CodeIgniter\Config\Services;
-use CodeIgniter\Validation\Validation;
 use CodeIgniter\Router\RouteCollection;
-use Tests\Support\HTTP\MockIncomingRequest;
+use CodeIgniter\Test\Mock\MockIncomingRequest;
+use CodeIgniter\Validation\Validation;
+use Config\App;
 
-class RedirectResponseTest extends \CIUnitTestCase
+class RedirectResponseTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
 	/**
@@ -18,14 +19,14 @@ class RedirectResponseTest extends \CIUnitTestCase
 	protected $request;
 	protected $config;
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 
 		$this->config          = new App();
-		$this->config->baseURL = 'http://example.com';
+		$this->config->baseURL = 'http://example.com/';
 
 		$this->routes = new RouteCollection(Services::locator(), new \Config\Modules());
 		Services::injectMock('routes', $this->routes);
@@ -57,14 +58,14 @@ class RedirectResponseTest extends \CIUnitTestCase
 		$response->route('exampleRoute');
 
 		$this->assertTrue($response->hasHeader('Location'));
-		$this->assertEquals('http://example.com/exampleRoute', $response->getHeaderLine('Location'));
+		$this->assertEquals('http://example.com/index.php/exampleRoute', $response->getHeaderLine('Location'));
 
 		$this->routes->add('exampleRoute', 'Home::index', ['as' => 'home']);
 
 		$response->route('home');
 
 		$this->assertTrue($response->hasHeader('Location'));
-		$this->assertEquals('http://example.com/exampleRoute', $response->getHeaderLine('Location'));
+		$this->assertEquals('http://example.com/index.php/exampleRoute', $response->getHeaderLine('Location'));
 	}
 
 	public function testRedirectRouteBad()
@@ -186,4 +187,94 @@ class RedirectResponseTest extends \CIUnitTestCase
 		$this->assertSame($response, $returned);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState  disabled
+	 *
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/2119
+	 */
+	public function testRedirectRouteBaseUrl()
+	{
+		$config          = new App();
+		$config->baseURL = 'http://example.com/test/';
+		Config::injectMock('App', $config);
+
+		$request = new MockIncomingRequest($config, new URI('http://example.com/test/'), null, new UserAgent());
+		Services::injectMock('request', $request);
+
+		$response = new RedirectResponse(new App());
+
+		$this->routes->add('exampleRoute', 'Home::index');
+
+		$response->route('exampleRoute');
+
+		$this->assertTrue($response->hasHeader('Location'));
+		$this->assertEquals('http://example.com/test/index.php/exampleRoute', $response->getHeaderLine('Location'));
+
+		Config::reset();
+	}
+
+	public function testWithCookies()
+	{
+		$_SESSION = [];
+
+		$baseResponse = service('response');
+		$baseResponse->setCookie('foo', 'bar');
+
+		$response = new RedirectResponse(new App());
+		$this->assertFalse($response->hasCookie('foo', 'bar'));
+
+		$response = $response->withCookies();
+
+		$this->assertTrue($response->hasCookie('foo', 'bar'));
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState  disabled
+	 */
+	public function testWithCookiesWithEmptyCookies()
+	{
+		$_SESSION = [];
+
+		$response = new RedirectResponse(new App());
+		$response = $response->withCookies();
+
+		$this->assertEmpty($response->getCookies());
+	}
+
+	public function testWithHeaders()
+	{
+		$_SESSION = [];
+
+		$baseResponse = service('response');
+		$baseResponse->setHeader('foo', 'bar');
+
+		$response = new RedirectResponse(new App());
+		$this->assertFalse($response->hasHeader('foo'));
+
+		$response = $response->withHeaders();
+
+		foreach ($baseResponse->getHeaders() as $name => $header)
+		{
+			$this->assertTrue($response->hasHeader($name));
+			$this->assertEquals($header->getValue(), $response->getHeader($name)->getValue());
+		}
+	}
+
+	public function testWithHeadersWithEmptyHeaders()
+	{
+		$_SESSION = [];
+
+		$baseResponse = service('response');
+		foreach ($baseResponse->getHeaders() as $key => $val)
+		{
+			$baseResponse->removeHeader($key);
+		}
+
+		$response = new RedirectResponse(new App());
+		$response = $response->withHeaders();
+
+		$this->assertEmpty($baseResponse->getHeaders());
+	}
 }

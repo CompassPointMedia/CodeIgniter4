@@ -1,16 +1,16 @@
 <?php
 namespace CodeIgniter\Debug;
 
-class TimerTest extends \CIUnitTestCase
+class TimerTest extends \CodeIgniter\Test\CIUnitTestCase
 {
 
-	protected function setUp()
+	protected function setUp(): void
 	{
 	}
 
 	//--------------------------------------------------------------------
 
-	public function tearDown()
+	public function tearDown(): void
 	{
 	}
 
@@ -76,11 +76,10 @@ class TimerTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	/**
-	 * @expectedException RunTimeException
-	 */
 	public function testThrowsExceptionStoppingNonTimer()
 	{
+		$this->expectException('RunTimeException');
+
 		$timer = new Timer();
 
 		$timer->stop('test1');
