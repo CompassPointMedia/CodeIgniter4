@@ -1319,15 +1319,15 @@ class BaseBuilder
 	/**
 	 * Platform independent LIKE statement builder.
 	 *
-	 * @param string  $prefix
-	 * @param string  $column
-	 * @param string  $not
-	 * @param string  $bind
-	 * @param boolean $insensitiveSearch
+	 * @param string|null $prefix
+	 * @param string      $column
+	 * @param string|null $not
+	 * @param string      $bind
+	 * @param boolean     $insensitiveSearch
 	 *
 	 * @return string     $like_statement
 	 */
-	protected function _like_statement(string $prefix = null, string $column, string $not = null, string $bind, bool $insensitiveSearch = false): string
+	protected function _like_statement(?string $prefix, string $column, ?string $not, string $bind, bool $insensitiveSearch = false): string
 	{
 		$likeStatement = "{$prefix} {$column} {$not} LIKE :{$bind}:";
 
@@ -1679,12 +1679,12 @@ class BaseBuilder
 	/**
 	 * LIMIT
 	 *
-	 * @param integer $value  LIMIT value
-	 * @param integer $offset OFFSET value
+	 * @param integer|null $value  LIMIT value
+	 * @param integer|null $offset OFFSET value
 	 *
 	 * @return $this
 	 */
-	public function limit(int $value = null, ?int $offset = 0)
+	public function limit(?int $value = null, ?int $offset = 0)
 	{
 		if (! is_null($value))
 		{
@@ -1882,7 +1882,7 @@ class BaseBuilder
 	 * "Count All" query
 	 *
 	 * Generates a platform-specific query string that counts all records in
-	 * the specified database
+	 * the particular table
 	 *
 	 * @param boolean $reset Are we want to clear query builder values?
 	 *
@@ -2226,8 +2226,6 @@ class BaseBuilder
 		return $this->compileFinalQuery($sql);
 	}
 
-	//--------------------------------------------------------------------
-
 	/**
 	 * Insert
 	 *
@@ -2318,8 +2316,6 @@ class BaseBuilder
 	{
 		return 'INSERT ' . $this->compileIgnore('insert') . 'INTO ' . $table . ' (' . implode(', ', $keys) . ') VALUES (' . implode(', ', $unescapedKeys) . ')';
 	}
-
-	//--------------------------------------------------------------------
 
 	/**
 	 * Replace
@@ -2803,9 +2799,8 @@ class BaseBuilder
 	 */
 	public function getCompiledDelete(bool $reset = true): string
 	{
-		$table = $this->QBFrom[0];
-
-		$sql = $this->delete($table, null, $reset);
+		$sql = $this->testMode()->delete('', null, $reset);
+		$this->testMode(false);
 
 		return $this->compileFinalQuery($sql);
 	}
