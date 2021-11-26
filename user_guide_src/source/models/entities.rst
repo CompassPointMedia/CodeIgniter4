@@ -44,7 +44,7 @@ Entity itself at **app/Entities/User.php**.
 
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class User extends Entity
     {
@@ -68,9 +68,9 @@ Create the model first at **app/Models/UserModel.php** so that we can interact w
     {
         protected $table         = 'users';
         protected $allowedFields = [
-            'username', 'email', 'password'
+            'username', 'email', 'password',
         ];
-        protected $returnType    = 'App\Entities\User';
+        protected $returnType    = \App\Entities\User::class;
         protected $useTimestamps = true;
     }
 
@@ -93,10 +93,11 @@ Now that all of the pieces are in place, you would work with the Entity class as
 
     // Updating
     unset($user->username);
-    if (! isset($user->username)
-    {
+
+    if (! isset($user->username) {
         $user->username = 'something new';
     }
+
     $userModel->save($user);
 
     // Create
@@ -160,10 +161,10 @@ the attributes directly, allowing you to enforce any business logic or data conv
 Here's an updated User entity to provide some examples of how this could be used::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
     use CodeIgniter\I18n\Time;
 
     class User extends Entity
@@ -230,16 +231,16 @@ with the Entity class' data mapping features.
 As an example, imagine you have the simplified User Entity that is used throughout your application::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class User extends Entity
     {
         protected $attributes = [
             'id' => null,
-            'name' => null,        // Represents a username
+            'name' => null, // Represents a username
             'email' => null,
             'password' => null,
             'created_at' => null,
@@ -257,16 +258,16 @@ property from ``$name`` to ``$full_name``, but that would require changes throug
 simply map the ``full_name`` column in the database to the ``$name`` property, and be done with the Entity changes::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class User extends Entity
     {
         protected $attributes = [
             'id' => null,
-            'name' => null,        // Represents a username
+            'name' => null, // Represents a username
             'email' => null,
             'password' => null,
             'created_at' => null,
@@ -274,13 +275,13 @@ simply map the ``full_name`` column in the database to the ``$name`` property, a
         ];
 
         protected $datamap = [
-            'full_name' => 'name',
+            'name' => 'full_name',
         ];
     }
 
 By adding our new database name to the ``$datamap`` array, we can tell the class what class property the database column
-should be accessible through. The key of the array is the name of the column in the database, where the value in the array
-is class property to map it to.
+should be accessible through. The key of the array is class property to map it to, where the value in the array is the
+name of the column in the database.
 
 In this example, when the model sets the ``full_name`` field on the User class, it actually assigns that value to the
 class' ``$name`` property, so it can be set and retrieved through ``$user->name``. The value will still be accessible
@@ -301,10 +302,10 @@ of helpful methods in an immutable, localized way.
 You can define which properties are automatically converted by adding the name to the **options['dates']** array::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class User extends Entity
     {
@@ -330,21 +331,21 @@ You can specify that properties in your Entity should be converted to common dat
 This option should be an array where the key is the name of the class property, and the value is the data type it
 should be cast to. Casting only affects when values are read. No conversions happen that affect the permanent value in
 either the entity or the database. Properties can be cast to any of the following data types:
-**integer**, **float**, **double**, **string**, **boolean**, **object**, **array**, **datetime**, and **timestamp**.
+**integer**, **float**, **double**, **string**, **boolean**, **object**, **array**, **datetime**, **timestamp**, and **uri**.
 Add a question mark at the beginning of type to mark property as nullable, i.e., **?string**, **?integer**.
 
 For example, if you had a User entity with an **is_banned** property, you can cast it as a boolean::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class User extends Entity
     {
         protected $casts = [
-            'is_banned' => 'boolean',
+            'is_banned'          => 'boolean',
             'is_banned_nullable' => '?boolean',
         ];
     }
@@ -367,10 +368,10 @@ Unlike the rest of the data types that you can cast properties into, the:
 the value whenever the property is set::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class User extends Entity
     {
@@ -400,10 +401,10 @@ a simpler alternative will result in a string that uses less space and is more e
 by humans::
 
     <?php
-    
+
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class Widget extends Entity
     {
@@ -428,10 +429,12 @@ Let's say the class will be located in the 'app/Entity/Cast' directory::
 
     <?php
 
-    namespace App\Entity\Cast
+    namespace App\Entity\Cast;
 
-    //The class must inherit the CodeIgniter\EntityCast\AbstractCast class
-    class CastBase64 extends \CodeIgniter\EntityCast\AbstractCast
+    use CodeIgniter\Entity\Cast\BaseCast;
+
+    //The class must inherit the CodeIgniter\Entity\Cast\BaseCast class
+    class CastBase64 extends BaseCast
     {
         public static function get($value, array $params = [])
         {
@@ -450,7 +453,7 @@ Now you need to register it::
 
     namespace App\Entities;
 
-    use CodeIgniter\Entity;
+    use CodeIgniter\Entity\Entity;
 
     class MyEntity extends Entity
     {
@@ -461,7 +464,7 @@ Now you need to register it::
 
         //Bind the type to the handler
         protected $castHandlers = [
-            'base64' => 'App\Entity\Cast\CastBase64',
+            'base64' => \App\Entity\Cast\CastBase64::class,
         ];
     }
 
@@ -473,7 +476,9 @@ Now you need to register it::
 
 If you don't need to change values when getting or setting a value. Then just don't implement the appropriate method::
 
-    class CastBase64 extends \CodeIgniter\EntityCast\AbstractCast
+    use CodeIgniter\Entity\Cast\BaseCast;
+
+    class CastBase64 extends BaseCast
     {
         public static function get($value, array $params = [])
         {
@@ -491,17 +496,21 @@ Additional parameters are indicated in square brackets and listed with a comma.
 
 ::
 
-    //Defining a type with parameters
+    // Defining a type with parameters
     protected $casts = [
         'some_attribute' => 'class[App\SomeClass, param2, param3]',
     ];
 
-    //Bind the type to the handler
+    // Bind the type to the handler
     protected $castHandlers = [
         'class' => 'SomeHandler',
     ];
 
-    class SomeHandler extends \CodeIgniter\EntityCast\AbstractCast
+::
+
+    use CodeIgniter\Entity\Cast\BaseCast;
+
+    class SomeHandler extends BaseCast
     {
         public static function get($value, array $params = [])
         {
@@ -528,7 +537,7 @@ Checking for Changed Attributes
 You can check if an Entity attribute has changed since it was created. The only parameter is the name of the
 attribute to check::
 
-    $user = new User();
+    $user = new \App\Entities\User();
     $user->hasChanged('name'); // false
 
     $user->name = 'Fred';
@@ -536,4 +545,4 @@ attribute to check::
 
 Or to check the whole entity for changed values omit the parameter::
 
-    $user->hasChanged();       // true
+    $user->hasChanged(); // true

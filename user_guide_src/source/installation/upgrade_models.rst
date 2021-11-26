@@ -8,8 +8,8 @@ Upgrade Models
 Documentations
 ==============
 
-- `Model Documentation Codeigniter 3.X <http://codeigniter.com/userguide3/general/models.html>`_
-- :doc:`Model Documentation Codeigniter 4.X </models/model>`
+- `Model Documentation CodeIgniter 3.X <http://codeigniter.com/userguide3/general/models.html>`_
+- :doc:`Model Documentation CodeIgniter 4.X </models/model>`
 
 
 What has been changed
@@ -33,12 +33,12 @@ Example: You have a version 3 model located in ``application/models/users/user_c
 The new Model in CI4 has a lot of built-in methods. For example, the ``find($id)`` method. With this you can find data where the primary key is equal to ``$id``.
 Inserting data is also easier than before. In CI4 there is an ``insert($data)`` method. You can optionally make use of all those built-in methods and migrate your code to the new methods.
 
-You can find more information to those methods `here </models/model.html>`_.
+You can find more information to those methods :doc:`here </models/model>`.
 
 Code Example
 ============
 
-Codeigniter Version 3.11
+CodeIgniter Version 3.11
 ------------------------
 
 Path: ``application/models``::
@@ -57,7 +57,7 @@ Path: ``application/models``::
         }
     }
 
-Codeigniter Version 4.x
+CodeIgniter Version 4.x
 -----------------------
 
 Path: ``app/Models``::

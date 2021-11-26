@@ -14,23 +14,23 @@ Renaming or Relocating the Application Directory
 If you would like to rename your application directory or even move
 it to a different location on your server, other than your project root, open
 your main **app/Config/Paths.php** and set a *full server path* in the
-``$appDirectory`` variable (at about line 45)::
+``$appDirectory`` variable (at about line 44)::
 
     public $appDirectory = '/path/to/your/application';
 
 You will need to modify two additional files in your project root, so that
 they can find the ``Paths`` configuration file:
 
-- ``/spark`` runs command line apps; the path is specified on or about line 44::
+- ``/spark`` runs command line apps; the path is specified on or about line 35::
 
-    require realpath('app/Config/Paths.php') ?: 'app/Config/Paths.php';
-    // ^^^ Change this if you move your application folder
+    $pathsConfig = 'app/Config/Paths.php';
+    // ^^^ Change this line if you move your application folder
 
 
 - ``/public/index.php`` is the front controller for your webapp; the config
-  path is specified on or about line 28::
+  path is specified on or about line 20::
 
-    require realpath(FCPATH . '../app/Config/Paths.php') ?: FCPATH . '../app/Config/Paths.php';
+    $pathsConfig = FCPATH . '../app/Config/Paths.php';
     // ^^^ Change this if you move your application folder
 
 

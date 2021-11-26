@@ -1,0 +1,26 @@
+Version 4.1.6
+#############
+
+Release Date: Not released
+
+**4.1.6 release of CodeIgniter4**
+
+.. contents::
+    :local:
+    :depth: 1
+
+BREAKING
+========
+
+Enhancements
+============
+- Database pane on debug toolbar now displays location where Query was called from. Also displays full backtrace.
+
+Changes
+=======
+
+Deprecations
+============
+
+Bugs Fixed
+==========

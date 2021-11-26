@@ -78,7 +78,7 @@ code into its own namespace, ``Example\Blog``. The files exist on our server at
 **/Modules/Blog/Helpers/blog_helper.php**. Within our controller we could
 use the following command to load the helper for us::
 
-    helper('Modules\Blog\blog');
+    helper('Example\Blog\blog');
 
 .. note:: The functions within files loaded this way are not truly namespaced.
     The namespace is simply used as a convenient way to locate the files.
@@ -122,10 +122,8 @@ functions::
     {
         $needle = is_array($needle) ? $needle : [$needle];
 
-        foreach ($needle as $item)
-        {
-            if (in_array($item, $haystack))
-            {
+        foreach ($needle as $item) {
+            if (in_array($item, $haystack, true)) {
                 return true;
             }
         }
@@ -137,6 +135,7 @@ functions::
     function random_element($array)
     {
         shuffle($array);
+
         return array_pop($array);
     }
 

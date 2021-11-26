@@ -4,7 +4,7 @@ Testing Controllers
 
 Testing your controllers is made convenient with a couple of new helper classes and traits. When testing controllers,
 you can execute the code within a controller, without first running through the entire application bootstrap process.
-Often times, using the `Feature Testing tools <feature.html>`_ will be simpler, but this functionality is here in
+Often times, using the :doc:`Feature Testing tools <feature>` will be simpler, but this functionality is here in
 case you need it.
 
 .. note:: Because the entire framework has not been bootstrapped, there will be times when you cannot test a controller
@@ -69,12 +69,14 @@ Specifies the class name of the controller to test. The first parameter must be 
 
     $this->controller(\App\Controllers\ForumController::class);
 
-**execute($method)**
+**execute(string $method, ...$params)**
 
-Executes the specified method within the controller. The only parameter is the name of the method to run::
+Executes the specified method within the controller. The first parameter is the name of the method to run::
 
     $results = $this->controller(\App\Controllers\ForumController::class)
                     ->execute('showCategories');
+
+By specifying the second and subsequent parameters, you can pass them to the controller method.
 
 This returns a new helper class that provides a number of routines for checking the response itself. See below
 for details.
@@ -96,7 +98,7 @@ If you do not provide one, the application's App config file will be used.
 
 Allows you to provide an **IncomingRequest** instance tailored to your testing needs::
 
-    $request = new CodeIgniter\HTTP\IncomingRequest(new Config\App(), new URI('http://example.com'));
+    $request = new \CodeIgniter\HTTP\IncomingRequest(new \Config\App(), new URI('http://example.com'));
     $request->setLocale($locale);
 
     $results = $this->withRequest($request)
@@ -110,7 +112,7 @@ into your controller.
 
 Allows you to provide a **Response** instance::
 
-    $response = new CodeIgniter\HTTP\Response(new Config\App());
+    $response = new \CodeIgniter\HTTP\Response(new \Config\App());
 
     $results = $this->withResponse($response)
                     ->controller(\App\Controllers\ForumController::class)
@@ -123,7 +125,7 @@ into your controller.
 
 Allows you to provide a **Logger** instance::
 
-    $logger = new CodeIgniter\Log\Handlers\FileHandler();
+    $logger = new \CodeIgniter\Log\Handlers\FileHandler();
 
     $results = $this->withResponse($response)
                     ->withLogger($logger)
@@ -133,7 +135,7 @@ Allows you to provide a **Logger** instance::
 If you do not provide one, a new Logger instance with the default configuration values will be passed
 into your controller.
 
-**withURI($uri)**
+**withURI(string $uri)**
 
 Allows you to provide a new URI that simulates the URL the client was visiting when this controller was run.
 This is helpful if you need to check URI segments within your controller. The only parameter is a string
@@ -159,7 +161,7 @@ you need to set a JSON value as the body. The only parameter is a string that re
 Checking the Response
 =====================
 
-``ControllerTestTrait::execute()`` returns an instance of a ``TestResponse``. See `Testing Responses <response.html>`_ on
+``ControllerTestTrait::execute()`` returns an instance of a ``TestResponse``. See :doc:`Testing Responses <response>` on
 how to use this class to perform additional assertions and verification in your test cases.
 
 Filter Testing
@@ -209,13 +211,13 @@ on an unfiltered route you could add it to the Config::
     {
         use FilterTestTrait;
 
-		protected function testFilterFailsOnAdminRoute()
-		{
-			$this->filtersConfig->globals['before'] = ['admin-only-filter'];
+        protected function testFilterFailsOnAdminRoute()
+        {
+            $this->filtersConfig->globals['before'] = ['admin-only-filter'];
 
-			$this->assertHasFilters('unfiltered/route', 'before');
-		}
-	...
+            $this->assertHasFilters('unfiltered/route', 'before');
+        }
+    ...
 
 Checking Routes
 ---------------
@@ -227,14 +229,14 @@ a large performance advantage over Controller and HTTP Testing.
 
 .. php:function:: getFiltersForRoute($route, $position)
 
-    :param	string	$route: The URI to check
-    :param	string	$position: The filter method to check, "before" or "after"
-	:returns:	Aliases for each filter that would have run
-	:rtype:	string[]
+    :param    string    $route: The URI to check
+    :param    string    $position: The filter method to check, "before" or "after"
+    :returns:    Aliases for each filter that would have run
+    :rtype:    string[]
 
     Usage example::
 
-		$result = $this->getFiltersForRoute('/', 'after'); // ['toolbar']
+        $result = $this->getFiltersForRoute('/', 'after'); // ['toolbar']
 
 Calling Filter Methods
 ----------------------
@@ -245,22 +247,22 @@ method using these properties to test your Filter code safely and check the resu
 
 .. php:function:: getFilterCaller($filter, $position)
 
-    :param	FilterInterface|string	$filter: The filter instance, class, or alias
-    :param	string	$position: The filter method to run, "before" or "after"
-	:returns:	A callable method to run the simulated Filter event
-	:rtype:	Closure
+    :param    FilterInterface|string    $filter: The filter instance, class, or alias
+    :param    string    $position: The filter method to run, "before" or "after"
+    :returns:    A callable method to run the simulated Filter event
+    :rtype:    Closure
 
     Usage example::
 
-		protected function testUnauthorizedAccessRedirects()
-		{
-			$caller = $this->getFilterCaller('permission', 'before');
-			$result = $caller('MayEditWidgets');
+        protected function testUnauthorizedAccessRedirects()
+        {
+            $caller = $this->getFilterCaller('permission', 'before');
+            $result = $caller('MayEditWidgets');
 
-			$this->assertInstanceOf('CodeIgniter\HTTP\RedirectResponse', $result);
-		}
-	
-	Notice how the ``Closure`` can take input parameters which are passed to your filter method.
+            $this->assertInstanceOf('CodeIgniter\HTTP\RedirectResponse', $result);
+        }
+
+    Notice how the ``Closure`` can take input parameters which are passed to your filter method.
 
 Assertions
 ----------
