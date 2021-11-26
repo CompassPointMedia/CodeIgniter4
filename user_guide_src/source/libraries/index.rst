@@ -6,6 +6,7 @@ Library Reference
     :titlesonly:
 
     caching
+    cookies
     curlrequest
     email
     encryption
@@ -13,6 +14,7 @@ Library Reference
     honeypot
     images
     pagination
+    publisher
     security
     sessions
     throttler

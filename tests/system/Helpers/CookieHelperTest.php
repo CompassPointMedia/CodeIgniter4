@@ -1,178 +1,194 @@
 <?php
+
+/**
+ * This file is part of CodeIgniter 4 framework.
+ *
+ * (c) CodeIgniter Foundation <admin@codeigniter.com>
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
 namespace CodeIgniter\Helpers;
 
-use CodeIgniter\Config\Services;
-use CodeIgniter\HTTP\Exceptions\HTTPException;
+use CodeIgniter\Cookie\Exceptions\CookieException;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\URI;
 use CodeIgniter\HTTP\UserAgent;
+use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockResponse;
 use Config\App;
+use Config\Services;
 
-final class CookieHelperTest extends \CodeIgniter\Test\CIUnitTestCase
+/**
+ * @internal
+ */
+final class CookieHelperTest extends CIUnitTestCase
 {
+    private $name;
+    private $value;
+    private $expire;
+    private $response;
 
-	private $name;
-	private $value;
-	private $expire;
-	private $response;
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-	protected function setUp(): void
-	{
-		parent::setUp();
+        $this->name   = 'greetings';
+        $this->value  = 'hello world';
+        $this->expire = 9999;
 
-		$this->name   = 'greetings';
-		$this->value  = 'hello world';
-		$this->expire = 9999;
+        Services::injectMock('response', new MockResponse(new App()));
+        $this->response = Services::response();
+        $this->request  = new IncomingRequest(new App(), new URI(), null, new UserAgent());
+        Services::injectMock('request', $this->request);
 
-		Services::injectMock('response', new MockResponse(new App()));
-		$this->response = service('response');
-		$this->request  = new IncomingRequest(new App(), new URI(), null, new UserAgent());
-		Services::injectMock('request', $this->request);
+        helper('cookie');
+    }
 
-		helper('cookie');
-	}
+    public function testSetCookie()
+    {
+        set_cookie($this->name, $this->value, $this->expire);
 
-	//--------------------------------------------------------------------
+        $this->assertTrue($this->response->hasCookie($this->name));
 
-	public function testSetCookie()
-	{
-		set_cookie($this->name, $this->value, $this->expire);
+        delete_cookie($this->name);
+    }
 
-		$this->assertTrue($this->response->hasCookie($this->name));
+    public function testHasCookie()
+    {
+        $cookieAttr = [
+            'name'   => $this->name,
+            'value'  => $this->value,
+            'expire' => $this->expire,
+        ];
+        set_cookie($cookieAttr);
 
-		delete_cookie($this->name);
-	}
+        $this->assertTrue(has_cookie($this->name, $this->value));
 
-	//--------------------------------------------------------------------
+        delete_cookie($this->name);
+    }
 
-	public function testSetCookieByArrayParameters()
-	{
-		$cookieAttr = [
-			'name'   => $this->name,
-			'value'  => $this->value,
-			'expire' => $this->expire,
-		];
-		set_cookie($cookieAttr);
+    public function testSetCookieByArrayParameters()
+    {
+        $cookieAttr = [
+            'name'   => $this->name,
+            'value'  => $this->value,
+            'expire' => $this->expire,
+        ];
+        set_cookie($cookieAttr);
 
-		$this->assertTrue($this->response->hasCookie($this->name, $this->value));
+        $this->assertTrue($this->response->hasCookie($this->name, $this->value));
 
-		delete_cookie($this->name);
-	}
+        delete_cookie($this->name);
+    }
 
-	//--------------------------------------------------------------------
+    public function testSetCookieSecured()
+    {
+        $pre       = 'Hello, I try to';
+        $pst       = 'your site';
+        $unsec     = "{$pre} <script>alert('Hack');</script> {$pst}";
+        $sec       = "{$pre} [removed]alert&#40;&#39;Hack&#39;&#41;;[removed] {$pst}";
+        $unsecured = 'unsecured';
+        $secured   = 'secured';
 
-	public function testSetCookieSecured()
-	{
-		$pre       = 'Hello, I try to';
-		$pst       = 'your site';
-		$unsec     = "$pre <script>alert('Hack');</script> $pst";
-		$sec       = "$pre [removed]alert&#40;&#39;Hack&#39;&#41;;[removed] $pst";
-		$unsecured = 'unsecured';
-		$secured   = 'secured';
+        set_cookie($unsecured, $unsec, $this->expire);
+        set_cookie($secured, $sec, $this->expire);
 
-		set_cookie($unsecured, $unsec, $this->expire);
-		set_cookie($secured, $sec, $this->expire);
+        $this->assertTrue($this->response->hasCookie($unsecured, $unsec));
+        $this->assertTrue($this->response->hasCookie($secured, $sec));
 
-		$this->assertTrue($this->response->hasCookie($unsecured, $unsec));
-		$this->assertTrue($this->response->hasCookie($secured, $sec));
+        delete_cookie($unsecured);
+        delete_cookie($secured);
+    }
 
-		delete_cookie($unsecured);
-		delete_cookie($secured);
-	}
+    public function testDeleteCookie()
+    {
+        $this->response->setCookie($this->name, $this->value, $this->expire);
 
-	//--------------------------------------------------------------------
+        delete_cookie($this->name);
 
-	public function testDeleteCookie()
-	{
-		$this->response->setCookie($this->name, $this->value, $this->expire);
+        $cookie = $this->response->getCookie($this->name);
 
-		delete_cookie($this->name);
+        // The cookie is set to be cleared when the request is sent....
+        $this->assertSame('', $cookie->getValue());
+        $this->assertSame(0, $cookie->getExpiresTimestamp());
+    }
 
-		$cookie = $this->response->getCookie($this->name);
+    public function testGetCookie()
+    {
+        $_COOKIE['TEST'] = 5;
 
-		// The cookie is set to be cleared when the request is sent....
-		$this->assertEquals('', $cookie['value']);
-		$this->assertEquals('', $cookie['expires']);
-	}
+        $this->assertSame('5', get_cookie('TEST'));
+    }
 
-	//--------------------------------------------------------------------
+    public function testDeleteCookieAfterLastSet()
+    {
+        delete_cookie($this->name);
 
-	public function testGetCookie()
-	{
-		$_COOKIE['TEST'] = 5;
+        $cookie = $this->response->getCookie($this->name);
+        // The cookie is set to be cleared when the request is sent....
+        $this->assertSame('', $cookie->getValue());
+    }
 
-		$this->assertEquals(5, get_cookie('TEST'));
-	}
+    public function testSameSiteDefault()
+    {
+        $cookieAttr = [
+            'name'   => $this->name,
+            'value'  => $this->value,
+            'expire' => $this->expire,
+        ];
 
-	public function testDeleteCookieAfterLastSet()
-	{
-		delete_cookie($this->name);
+        set_cookie($cookieAttr);
 
-		$cookie = $this->response->getCookie($this->name);
-		// The cookie is set to be cleared when the request is sent....
-		$this->assertEquals('', $cookie['value']);
-	}
+        $this->assertTrue($this->response->hasCookie($this->name));
+        $theCookie = $this->response->getCookie($this->name);
+        $this->assertSame('Lax', $theCookie->getSameSite());
 
-	public function testSameSiteDefault()
-	{
-		$cookieAttr = [
-			'name'   => $this->name,
-			'value'  => $this->value,
-			'expire' => $this->expire,
-		];
+        delete_cookie($this->name);
+    }
 
-		set_cookie($cookieAttr);
+    public function testSameSiteInvalid()
+    {
+        $cookieAttr = [
+            'name'     => $this->name,
+            'value'    => $this->value,
+            'expire'   => $this->expire,
+            'samesite' => 'Invalid',
+        ];
 
-		$this->assertTrue($this->response->hasCookie($this->name));
-		$theCookie = $this->response->getCookie($this->name);
-		$this->assertEquals('Lax', $theCookie['samesite']);
+        $this->expectException(CookieException::class);
+        $this->expectExceptionMessage(lang('Cookie.invalidSameSite', ['Invalid']));
 
-		delete_cookie($this->name);
-	}
+        set_cookie($cookieAttr);
+    }
 
-	public function testSameSiteInvalid()
-	{
-		$cookieAttr = [
-			'name'     => $this->name,
-			'value'    => $this->value,
-			'expire'   => $this->expire,
-			'samesite' => 'Invalid',
-		];
+    public function testSameSiteParamArray()
+    {
+        $cookieAttr = [
+            'name'     => $this->name,
+            'value'    => $this->value,
+            'expire'   => $this->expire,
+            'samesite' => 'Strict',
+        ];
 
-		$this->expectException(HTTPException::class);
-		$this->expectExceptionMessage(lang('Security.invalidSameSiteSetting', ['Invalid']));
+        set_cookie($cookieAttr);
 
-		set_cookie($cookieAttr);
-	}
+        $this->assertTrue($this->response->hasCookie($this->name));
+        $theCookie = $this->response->getCookie($this->name);
+        $this->assertSame('Strict', $theCookie->getSameSite());
 
-	public function testSameSiteParamArray()
-	{
-		$cookieAttr = [
-			'name'     => $this->name,
-			'value'    => $this->value,
-			'expire'   => $this->expire,
-			'samesite' => 'Strict',
-		];
+        delete_cookie($this->name);
+    }
 
-		set_cookie($cookieAttr);
+    public function testSameSiteParam()
+    {
+        set_cookie($this->name, $this->value, $this->expire, '', '', '', '', '', 'Strict');
 
-		$this->assertTrue($this->response->hasCookie($this->name));
-		$theCookie = $this->response->getCookie($this->name);
-		$this->assertEquals('Strict', $theCookie['samesite']);
+        $this->assertTrue($this->response->hasCookie($this->name));
+        $theCookie = $this->response->getCookie($this->name);
+        $this->assertSame('Strict', $theCookie->getSameSite());
 
-		delete_cookie($this->name);
-	}
-
-	public function testSameSiteParam()
-	{
-		set_cookie($this->name, $this->value, $this->expire, '', '', '', '', '', 'Strict');
-
-		$this->assertTrue($this->response->hasCookie($this->name));
-		$theCookie = $this->response->getCookie($this->name);
-		$this->assertEquals('Strict', $theCookie['samesite']);
-
-		delete_cookie($this->name);
-	}
-
+        delete_cookie($this->name);
+    }
 }

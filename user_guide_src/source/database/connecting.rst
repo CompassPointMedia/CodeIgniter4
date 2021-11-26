@@ -2,6 +2,10 @@
 Connecting to your Database
 ###########################
 
+.. contents::
+    :local:
+    :depth: 2
+
 You can connect to your database by adding this line of code in any
 function where it is needed, or in your class constructor to make the
 database available globally in that class.
@@ -23,7 +27,7 @@ Available Parameters
 --------------------
 
 #. The database group name, a string that must match the config class' property name. Default value is ``$config->defaultGroup``.
-#. TRUE/FALSE (boolean). Whether to return the shared connection (see
+#. true/false (boolean). Whether to return the shared connection (see
    Connecting to Multiple Databases below).
 
 Manually Connecting to a Database

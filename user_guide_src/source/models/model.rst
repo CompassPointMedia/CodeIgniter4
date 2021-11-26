@@ -73,6 +73,28 @@ that extends ``CodeIgniter\Model``::
 This empty class provides convenient access to the database connection, the Query Builder,
 and a number of additional convenience methods.
 
+Should you need additional setup in your model you may extend the ``initialize()`` function
+which will be run immediately after the Model's constructor. This allows you to perform
+extra steps without repeating the constructor parameters, for example extending other models::
+
+    <?php
+
+    namespace App\Models;
+
+    use Modules\Authentication\Models\UserAuthModel;
+
+    class UserModel extends UserAuthModel
+    {
+        /**
+         * Called during initialization. Appends
+         * our custom field to the module's model.
+         */
+        protected function initialize()
+        {
+            $this->allowedFields[] = 'middlename';
+        }
+    }
+
 Connecting to the Database
 --------------------------
 
@@ -150,7 +172,7 @@ is used with methods like ``find()`` to know what column to match the specified 
 **$useAutoIncrement**
 
 Specifies if the table uses an auto-increment feature for ``$primaryKey``. If set to ``false``
-then you are responsible for providing primary key value for every record in the table. This 
+then you are responsible for providing primary key value for every record in the table. This
 feature may be handy when we want to implement 1:1 relation or use UUIDs for our model.
 
 .. note:: If you set ``$useAutoIncrement`` to ``false`` then make sure to set your primary
@@ -299,7 +321,7 @@ Returns the first row in the result set. This is best used in combination with t
 
 **withDeleted()**
 
-If $useSoftDeletes is true, then the find* methods will not return any rows where 'deleted_at IS NOT NULL'.
+If $useSoftDeletes is true, then the find* methods will not return any rows where 'deleted_at IS NOT null'.
 To temporarily override this, you can use the withDeleted() method prior to calling the find* method.
 ::
 
@@ -307,16 +329,14 @@ To temporarily override this, you can use the withDeleted() method prior to call
     $activeUsers = $userModel->findAll();
 
     // Gets all rows
-    $allUsers = $userModel->withDeleted()
-                          ->findAll();
+    $allUsers = $userModel->withDeleted()->findAll();
 
 **onlyDeleted()**
 
 Whereas withDeleted() will return both deleted and not-deleted rows, this method modifies
 the next find* methods to return only soft deleted rows::
 
-    $deletedUsers = $userModel->onlyDeleted()
-                              ->findAll();
+    $deletedUsers = $userModel->onlyDeleted()->findAll();
 
 Saving Data
 -----------
@@ -329,7 +349,7 @@ the array's values are the values to save for that key::
 
     $data = [
         'username' => 'darth',
-        'email'    => 'd.vader@theempire.com'
+        'email'    => 'd.vader@theempire.com',
     ];
 
     $userModel->insert($data);
@@ -342,7 +362,7 @@ of the columns in a $table, while the array's values are the values to save for 
 
     $data = [
         'username' => 'darth',
-        'email'    => 'd.vader@theempire.com'
+        'email'    => 'd.vader@theempire.com',
     ];
 
     $userModel->update($id, $data);
@@ -350,7 +370,7 @@ of the columns in a $table, while the array's values are the values to save for 
 Multiple records may be updated with a single call by passing an array of primary keys as the first parameter::
 
     $data = [
-        'active' => 1
+        'active' => 1,
     ];
 
     $userModel->update([1, 2, 3], $data);
@@ -374,7 +394,7 @@ automatically, based on whether it finds an array key matching the $primaryKey v
     // Does an insert()
     $data = [
         'username' => 'darth',
-        'email'    => 'd.vader@theempire.com'
+        'email'    => 'd.vader@theempire.com',
     ];
 
     $userModel->save($data);
@@ -383,7 +403,7 @@ automatically, based on whether it finds an array key matching the $primaryKey v
     $data = [
         'id'       => 3,
         'username' => 'darth',
-        'email'    => 'd.vader@theempire.com'
+        'email'    => 'd.vader@theempire.com',
     ];
     $userModel->save($data);
 
@@ -405,16 +425,14 @@ simplest, they might look like this::
 
         public function __get($key)
         {
-            if (property_exists($this, $key))
-            {
+            if (property_exists($this, $key)) {
                 return $this->$key;
             }
         }
 
         public function __set($key, $value)
         {
-            if (property_exists($this, $key))
-            {
+            if (property_exists($this, $key)) {
                 $this->$key = $value;
             }
         }
@@ -492,13 +510,13 @@ be applied. If you have custom error message that you want to use, place them in
             'username'     => 'required|alpha_numeric_space|min_length[3]',
             'email'        => 'required|valid_email|is_unique[users.email]',
             'password'     => 'required|min_length[8]',
-            'pass_confirm' => 'required_with[password]|matches[password]'
+            'pass_confirm' => 'required_with[password]|matches[password]',
         ];
 
         protected $validationMessages = [
             'email'        => [
-                'is_unique' => 'Sorry. That email has already been taken. Please choose another.'
-            ]
+                'is_unique' => 'Sorry. That email has already been taken. Please choose another.',
+            ],
         ];
     }
 
@@ -515,7 +533,7 @@ The other way to set the validation rules to fields by functions,
 
         $fieldName = 'username';
         $fieldRules = 'required|alpha_numeric_space|min_length[3]';
-        
+
         $model->setValidationRule($fieldName, $fieldRules);
 
 .. php:function:: setValidationRules($validationRules)
@@ -729,8 +747,7 @@ parameter is a Closure that will be called for each row of data.
 This is best used during cronjobs, data exports, or other large tasks.
 ::
 
-    $userModel->chunk(100, function ($data)
-    {
+    $userModel->chunk(100, function ($data) {
         // do something.
         // $data is a single row of data.
     });
@@ -757,10 +774,10 @@ must return the original $data array so other callbacks have the full informatio
 
     protected function hashPassword(array $data)
     {
-        if (! isset($data['data']['password']) return $data;
+        if (! isset($data['data']['password'])) return $data;
 
         $data['data']['password_hash'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
-        unset($data['data']['password'];
+        unset($data['data']['password']);
 
         return $data;
     }
@@ -782,7 +799,7 @@ Additionally, each model may allow (default) or deny callbacks class-wide by set
 You may also change this setting temporarily for a single model call sing the ``allowCallbacks()`` method::
 
     $model->allowCallbacks(false)->find(1); // No callbacks triggered
-    $model->find(1);                        // Callbacks subject to original property value
+    $model->find(1); // Callbacks subject to original property value
 
 Event Parameters
 ----------------
@@ -832,13 +849,15 @@ boolean, ``returnData``::
     protected function checkCache(array $data)
     {
         // Check if the requested item is already in our cache
-        if (isset($data['id']) && $item = $this->getCachedItem($data['id']]))
-        {
+        if (isset($data['id']) && $item = $this->getCachedItem($data['id']])) {
             $data['data']       = $item;
             $data['returnData'] = true;
 
             return $data;
-    // ...
+        }
+
+        // ...
+    }
 
 Manual Model Creation
 =====================
