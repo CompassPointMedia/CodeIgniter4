@@ -32,11 +32,10 @@ directory in the main project root::
 
 Open **app/Config/Autoload.php** and add the **Acme** namespace to the ``psr4`` array property::
 
-    $psr4 = [
-        'Config'        => APPPATH . 'Config',
-        APP_NAMESPACE   => APPPATH,                // For custom namespace
-        'App'           => APPPATH,                // To ensure filters, etc still found,
-        'Acme'          => ROOTPATH.'acme'
+    public $psr4 = [
+        APP_NAMESPACE => APPPATH, // For custom namespace
+        'Config'      => APPPATH . 'Config',
+        'Acme'        => ROOTPATH . 'acme',
     ];
 
 Now that this is set up, we can access any file within the **acme** folder through the ``Acme`` namespace. This alone
@@ -63,6 +62,27 @@ Of course, there is nothing forcing you to use this exact structure, and you sho
 best suits your module, leaving out directories you don't need, creating new directories for Entities, Interfaces,
 or Repositories, etc.
 
+===========================
+Autoloading Non-class Files
+===========================
+
+More often than not that your module will not contain only PHP classes but also others like procedural
+functions, bootstrapping files, module constants files, etc. which are not normally loaded the way classes
+are loaded. One approach for this is using ``require``-ing the file(s) at the start of the file where it
+would be used.
+
+Another approach provided by CodeIgniter is to autoload these *non-class* files like how you would autoload
+your classes. All we need to do is provide the list of paths to those files and include them in the
+``$files`` property of your **app/Config/Autoload.php** file.
+
+::
+
+    public $files = [
+        'path/to/my/functions.php',
+        'path/to/my/constants.php',
+        'path/to/my/bootstrap.php',
+    ];
+
 ==============
 Auto-Discovery
 ==============
@@ -81,7 +101,17 @@ This is configured in the file **app/Config/Modules.php**.
 The auto-discovery system works by scanning for particular directories and files within psr4 namespaces that have been defined in **Config/Autoload.php**.
 
 To make auto-discovery work for our **Blog** namespace, we need to make one small adjustment.
-**Acme** needs to be changed to **Acme\\Blog** because each "module" within the namespace needs to be fully defined. Once your module folder path is defined, the discovery process would look for discoverable items on that path and should, for example, find the routes file at **/acme/Blog/Config/Routes.php**.
+**Acme** needs to be changed to **Acme\\Blog** because each "module" within the namespace needs to be fully defined.
+
+::
+
+    public $psr4 = [
+        APP_NAMESPACE => APPPATH, // For custom namespace
+        'Config'      => APPPATH . 'Config',
+        'Acme\Blog'   => ROOTPATH . 'acme/Blog', // Change
+    ];
+
+Once your module folder path is defined, the discovery process would look for discoverable items on that path and should, for example, find the routes file at **/acme/Blog/Config/Routes.php**.
 
 Enable/Disable Discover
 =======================
@@ -123,6 +153,19 @@ the **Modules** config file, described above.
 .. note:: Since the files are being included into the current scope, the ``$routes`` instance is already defined for you.
     It will cause errors if you attempt to redefine that class.
 
+Filters
+=======
+
+By default, :doc:`filters </incoming/filters>` are automatically scanned for within modules.
+It can be turned off in the **Modules** config file, described above.
+
+.. note:: Since the files are being included into the current scope, the ``$filters`` instance is already defined for you.
+    It will cause errors if you attempt to redefine that class.
+
+In the module's **Config/Filters.php** file, you need to define the aliases of the filters you use.::
+
+    $filters->aliases['menus'] = MenusFilter::class;
+
 Controllers
 ===========
 
@@ -134,8 +177,7 @@ but must be specified within the Routes file itself::
 
 To reduce the amount of typing needed here, the **group** routing feature is helpful::
 
-    $routes->group('blog', ['namespace' => 'Acme\Blog\Controllers'], function($routes)
-    {
+    $routes->group('blog', ['namespace' => 'Acme\Blog\Controllers'], function ($routes) {
         $routes->get('/', 'Blog::index');
     });
 

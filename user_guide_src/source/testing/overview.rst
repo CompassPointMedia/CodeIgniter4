@@ -80,7 +80,7 @@ To test a new library, **Foo**, you would create a new file at **tests/app/Libra
         }
     }
 
-To test one of your models, you might end up with something like this in ``tests/app/Models/OneOfMyModelsTest.php``::
+To test one of your models, you might end up with something like this in **tests/app/Models/OneOfMyModelsTest.php**::
 
     <?php
 
@@ -159,19 +159,19 @@ to run named for the trait itself. For example, if you needed to add authenticat
 of your test cases you could create an authentication trait with a set up method to fake a
 logged in user::
 
-	trait AuthTrait
-	{
-		protected setUpAuthTrait()
-		{
-			$user = $this->createFakeUser();
-			$this->logInUser($user);
-		}
-	...
+    trait AuthTrait
+    {
+        protected setUpAuthTrait()
+        {
+            $user = $this->createFakeUser();
+            $this->logInUser($user);
+        }
+    ...
 
-	class AuthenticationFeatureTest
-	{
-		use AuthTrait;
-	...
+    class AuthenticationFeatureTest
+    {
+        use AuthTrait;
+    ...
 
 
 Additional Assertions
@@ -195,7 +195,7 @@ Ensure that something you expected to be logged actually was::
 
 Ensure that an event you expected to be triggered actually was::
 
-    Events::on('foo', function($arg) use(&$result) {
+    Events::on('foo', function ($arg) use(&$result) {
         $result = $arg;
     });
 
@@ -203,7 +203,7 @@ Ensure that an event you expected to be triggered actually was::
 
     $this->assertEventTriggered('foo');
 
-**assertHeaderEmitted($header, $ignoreCase=false)**
+**assertHeaderEmitted($header, $ignoreCase = false)**
 
 Ensure that a header or cookie was actually emitted::
 
@@ -218,7 +218,7 @@ Ensure that a header or cookie was actually emitted::
 Note: the test case with this should be `run as a separate process
 in PHPunit <https://phpunit.readthedocs.io/en/7.4/annotations.html#runinseparateprocess>`_.
 
-**assertHeaderNotEmitted($header, $ignoreCase=false)**
+**assertHeaderNotEmitted($header, $ignoreCase = false)**
 
 Ensure that a header or cookie was not emitted::
 
@@ -233,7 +233,7 @@ Ensure that a header or cookie was not emitted::
 Note: the test case with this should be `run as a separate process
 in PHPunit <https://phpunit.readthedocs.io/en/7.4/annotations.html#runinseparateprocess>`_.
 
-**assertCloseEnough($expected, $actual, $message='', $tolerance=1)**
+**assertCloseEnough($expected, $actual, $message = '', $tolerance = 1)**
 
 For extended execution time testing, tests that the absolute difference
 between expected and actual time is within the prescribed tolerance.::
@@ -244,7 +244,7 @@ between expected and actual time is within the prescribed tolerance.::
 
 The above test will allow the actual time to be either 660 or 661 seconds.
 
-**assertCloseEnoughString($expected, $actual, $message='', $tolerance=1)**
+**assertCloseEnoughString($expected, $actual, $message = '', $tolerance = 1)**
 
 For extended execution time testing, tests that the absolute difference
 between expected and actual time, formatted as strings, is within the prescribed tolerance.::
@@ -309,8 +309,8 @@ Mocking Services
 
 You will often find that you need to mock one of the services defined in **app/Config/Services.php** to limit
 your tests to only the code in question, while simulating various responses from the services. This is especially
-true when testing controllers and other integration testing. The **Services** class provides two methods to make this
-simple: ``injectMock()``, and ``reset()``.
+true when testing controllers and other integration testing. The **Services** class provides the following methods
+to simplify this.
 
 **injectMock()**
 
@@ -335,7 +335,11 @@ class exactly. The second parameter is the instance to replace it with.
 
 Removes all mocked classes from the Services class, bringing it back to its original state.
 
-.. note:: The ``Email`` and ``Session`` services are mocked by default to prevent intrusive testing behavior. To prevent these from mocking remove their method callback from the class property: ``$setUpMethods = ['mockEmail', 'mockSession'];``
+**resetSingle(string $name)**
+
+Removes any mock and shared instances for a single service, by its name.
+
+.. note:: The ``Cache``, ``Email`` and ``Session`` services are mocked by default to prevent intrusive testing behavior. To prevent these from mocking remove their method callback from the class property: ``$setUpMethods = ['mockEmail', 'mockSession'];``
 
 Mocking Factory Instances
 =========================
@@ -380,5 +384,5 @@ An example demonstrating this inside one of your test cases::
     {
         CLI::write('first.');
         $expected = "first.\n";
-        $this->assertEquals($expected, CITestStreamFilter::$buffer);
+        $this->assertSame($expected, CITestStreamFilter::$buffer);
     }
