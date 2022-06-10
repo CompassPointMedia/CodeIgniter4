@@ -22,7 +22,7 @@ This tutorial will primarily focus on:
 -  Model-View-Controller basics
 -  Routing basics
 -  Form validation
--  Performing basic database queries using CodeIgniter's "Query Builder"
+-  Performing basic database queries using CodeIgniter's Model
 
 The entire tutorial is split up over several pages, each explaining a
 small part of the functionality of the CodeIgniter framework. You'll go
@@ -55,11 +55,9 @@ Getting Up and Running
 
 You can download a release manually from the site, but for this tutorial we will
 use the recommended way and install the AppStarter package through Composer.
-From your command line type the following:
+From your command line type the following::
 
-::
-
-    composer create-project codeigniter4/appstarter ci-news
+    > composer create-project codeigniter4/appstarter ci-news
 
 This creates a new folder, **ci-news**, which contains your application code, with
 CodeIgniter installed in the vendor folder.
@@ -82,16 +80,13 @@ comes with a simple command that takes advantage of PHP's built-in server to get
 you up and running fast on your development machines. Type the following on the
 command line from the root of your project::
 
-    php spark serve
-
+    > php spark serve
 
 The Welcome Page
 ****************
 
 Now point your browser to the correct URL you will be greeted by a welcome screen.
-Try it now by heading to the following URL:
-
-::
+Try it now by heading to the following URL::
 
     http://localhost:8080
 
@@ -126,7 +121,6 @@ There are a couple of things to note here:
    the arguments that were passed into that function call.
 
 Everything else should be clear when you see it.
-
 
 Now that we know how to get started and how to debug a little, let's get started building this
 small news application.

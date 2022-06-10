@@ -1,6 +1,10 @@
 Manual Installation
 ###################
 
+.. contents::
+    :local:
+    :depth: 2
+
 The `CodeIgniter 4 framework <https://github.com/codeigniter4/framework>`_
 repository holds the released versions of the framework.
 It is intended for developers who do not wish to use Composer.
@@ -23,14 +27,14 @@ Setting Up
 
 None
 
+.. _installing-manual-upgrading:
+
 Upgrading
 ---------
 
-Download a new copy of the framework, and then follow the upgrade
-instructions in the release notice or changelog to merge that with your project.
+Download a new copy of the framework, and then replace the ``system`` folder.
 
-Typically, you replace the ``system`` folder, and check designated
-``app/Config`` folders for affected changes.
+Read the :doc:`upgrade instructions <upgrading>`, and check Breaking Changes and Enhancements.
 
 Pros
 ----
@@ -47,7 +51,6 @@ Structure
 
 Folders in your project after set up:
 app, public, system, writable
-
 
 Translations Installation
 =========================

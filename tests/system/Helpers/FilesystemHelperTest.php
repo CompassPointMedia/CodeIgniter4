@@ -12,8 +12,8 @@
 namespace CodeIgniter\Helpers;
 
 use CodeIgniter\Test\CIUnitTestCase;
-use InvalidArgumentException;
 use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\visitor\vfsStreamStructureVisitor;
 
 /**
  * @internal
@@ -161,6 +161,34 @@ final class FilesystemHelperTest extends CIUnitTestCase
         $this->assertSame($this->structure['boo']['faz'], $result);
     }
 
+    public function testDirectoryMirrorSkipExistingFolder()
+    {
+        $this->assertTrue(function_exists('directory_mirror'));
+
+        $this->structure = [
+            'src' => [
+                'AnEmptyFolder' => [],
+            ],
+            'dest' => [
+                'AnEmptyFolder' => [],
+            ],
+        ];
+        vfsStream::setup('root', null, $this->structure);
+        $root = rtrim(vfsStream::url('root') . DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        // skips the existing folder
+        directory_mirror($root . 'src', $root . 'dest');
+
+        $structure = vfsStream::inspect(new vfsStreamStructureVisitor())->getStructure();
+        $this->assertSame([], $structure['root']['dest']['AnEmptyFolder']);
+
+        // skips the existing folder (the same as overwrite = true)
+        directory_mirror($root . 'src', $root . 'dest', false);
+
+        $structure = vfsStream::inspect(new vfsStreamStructureVisitor())->getStructure();
+        $this->assertSame([], $structure['root']['dest']['AnEmptyFolder']);
+    }
+
     public function testWriteFileSuccess()
     {
         $vfs = vfsStream::setup('root');
@@ -275,6 +303,22 @@ final class FilesystemHelperTest extends CIUnitTestCase
         $vfs = vfsStream::setup('root', null, $this->structure);
 
         $this->assertSame($expected, get_filenames($vfs->url(), false));
+    }
+
+    public function testGetFilenamesWithoutDirectories()
+    {
+        $vfs = vfsStream::setup('root', null, $this->structure);
+
+        $filenames = get_filenames($vfs->url(), true, false, false);
+
+        $expected = [
+            'vfs://root/boo/far',
+            'vfs://root/boo/faz',
+            'vfs://root/foo/bar',
+            'vfs://root/foo/baz',
+            'vfs://root/simpleFile',
+        ];
+        $this->assertSame($expected, $filenames);
     }
 
     public function testGetFilenamesWithHidden()
@@ -496,13 +540,13 @@ final class FilesystemHelperTest extends CIUnitTestCase
 
     public function testRealPathURL()
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException('InvalidArgumentException');
         set_realpath('http://somewhere.com/overtherainbow');
     }
 
     public function testRealPathInvalid()
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException('InvalidArgumentException');
         set_realpath(SUPPORTPATH . 'root/../', true);
     }
 

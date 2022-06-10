@@ -8,6 +8,10 @@ To get around this problem, the most efficient solution (so far) is to manually 
 
 Here's how to force the ``X-Requested-With`` header to be sent in the Fetch API and other JavaScript libraries.
 
+.. contents::
+    :local:
+    :depth: 2
+
 Fetch API
 =========
 
@@ -21,7 +25,6 @@ Fetch API
         }
     });
 
-
 jQuery
 ======
 
@@ -34,7 +37,6 @@ For libraries like jQuery for example, it is not necessary to make explicit the 
         headers: {'X-Requested-With': 'XMLHttpRequest'}
     });
 
-
 VueJS
 =====
 
@@ -43,7 +45,6 @@ In VueJS you just need to add the following code to the ``created`` function, as
 .. code-block:: javascript
 
     axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-
 
 React
 =====

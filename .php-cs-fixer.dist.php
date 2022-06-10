@@ -29,22 +29,13 @@ $finder = Finder::create()
     ->notName('#Foobar.php$#')
     ->append([
         __FILE__,
-        __DIR__ . '/.no-header.php-cs-fixer.dist.php',
+        __DIR__ . '/.php-cs-fixer.no-header.php',
+        __DIR__ . '/.php-cs-fixer.user-guide.php',
         __DIR__ . '/rector.php',
         __DIR__ . '/spark',
     ]);
 
-$overrides = [
-    'ordered_class_elements' => [
-        'order' => [
-            'use_trait',
-            'constant',
-            'property',
-            'method',
-        ],
-        'sort_algorithm' => 'none',
-    ],
-];
+$overrides = [];
 
 $options = [
     'cacheFile'    => 'build/.php-cs-fixer.cache',

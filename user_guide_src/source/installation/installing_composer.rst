@@ -3,7 +3,7 @@ Composer Installation
 
 .. contents::
     :local:
-    :depth: 1
+    :depth: 2
 
 Composer can be used in several ways to install CodeIgniter4 on your system.
 
@@ -32,7 +32,7 @@ Installation & Set Up
 
 In the folder above your project root::
 
-    composer create-project codeigniter4/appstarter project-root
+    > composer create-project codeigniter4/appstarter project-root
 
 The command above will create a "project-root" folder.
 
@@ -46,20 +46,22 @@ trusted dependencies that we bundle, being composer-installed.
 
 A sample such installation command, using the default project-root "appstarter"::
 
-    composer create-project codeigniter4/appstarter --no-dev
+    > composer create-project codeigniter4/appstarter --no-dev
 
 After installation you should follow the steps in the "Upgrading" section.
+
+.. _app-starter-upgrading:
 
 Upgrading
 ---------
 
 Whenever there is a new release, then from the command line in your project root::
 
-    composer update
+    > composer update
 
 If you want to compare the latest framework source structure for non-system directory (app, public, etc), you can update with ``--prefer-source``::
 
-    composer update codeigniter4/framework --prefer-source
+    > composer update codeigniter4/framework --prefer-source
 
 If ``--prefer-source`` doesn't automatically update to pull latest framework source structure, you can remove first::
 
@@ -68,7 +70,7 @@ If ``--prefer-source`` doesn't automatically update to pull latest framework sou
 If you used the ``--no-dev`` option when you created the project, it
 would be appropriate to do so here too, i.e., ``composer update --no-dev``.
 
-Read the upgrade instructions, and check designated  ``app/Config`` folders for affected changes.
+Read the :doc:`upgrade instructions <upgrading>`, and check Breaking Changes and Enhancements.
 
 Pros
 ----
@@ -125,7 +127,7 @@ will be your document root.
 
 In your project root::
 
-    composer require codeigniter4/framework --prefer-source
+    > composer require codeigniter4/framework --prefer-source
 
 As with the earlier two composer install methods, you can omit installing
 phpunit and its dependencies by adding the ``--no-dev`` argument to the ``composer require`` command.
@@ -142,15 +144,16 @@ Copy the ``env``, ``phpunit.xml.dist`` and ``spark`` files, from
 You will have to adjust the system path to refer to the vendor one, e.g., ``ROOTPATH . '/vendor/codeigniter4/framework/system'``,
 - the ``$systemDirectory`` variable in **app/Config/Paths.php**
 
+.. _adding-codeigniter4-upgrading:
+
 Upgrading
 ---------
 
 Whenever there is a new release, then from the command line in your project root::
 
-    composer update --prefer-source
+    > composer update --prefer-source
 
-Read the upgrade instructions, and check designated
-``app/Config`` folders for affected changes.
+Read the :doc:`upgrade instructions <upgrading>`, and check Breaking Changes and Enhancements.
 
 Pros
 ----
@@ -170,7 +173,6 @@ Folders in your project after set up:
 - app, public, writable (when using ``--prefer-source``)
 - vendor/codeigniter4/framework/system
 
-
 Translations Installation
 =========================
 
@@ -179,6 +181,6 @@ they can be added to your project in a similar fashion.
 
 From the command line inside your project root::
 
-    composer require codeigniter4/translations
+    > composer require codeigniter4/translations
 
 These will be updated along with the framework whenever you do a ``composer update``.

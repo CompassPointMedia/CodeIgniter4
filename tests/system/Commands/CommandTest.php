@@ -22,11 +22,13 @@ use Tests\Support\Commands\ParamsReveal;
 final class CommandTest extends CIUnitTestCase
 {
     private $streamFilter;
-    protected $logger;
-    protected $commands;
+    private $logger;
+    private $commands;
 
     protected function setUp(): void
     {
+        $this->resetServices();
+
         parent::setUp();
 
         CITestStreamFilter::$buffer = '';
@@ -104,15 +106,6 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringContainsString('| Namespace', $this->getBuffer());
         $this->assertStringContainsString('| Config', $this->getBuffer());
         $this->assertStringContainsString('| Yes', $this->getBuffer());
-    }
-
-    public function testRoutesCommand()
-    {
-        command('routes');
-
-        $this->assertStringContainsString('| Route', $this->getBuffer());
-        $this->assertStringContainsString('| testing', $this->getBuffer());
-        $this->assertStringContainsString('\\TestController::index', $this->getBuffer());
     }
 
     public function testInexistentCommandWithNoAlternatives()

@@ -10,6 +10,7 @@
  */
 
 use Config\App;
+use Config\Cookie;
 use Config\Services;
 
 //=============================================================================
@@ -28,7 +29,7 @@ if (! function_exists('set_cookie')) {
      * @param string       $expire   The number of seconds until expiration
      * @param string       $domain   For site-wide cookie. Usually: .yourdomain.com
      * @param string       $path     The cookie path
-     * @param string       $prefix   The cookie prefix
+     * @param string       $prefix   The cookie prefix ('': the default prefix)
      * @param bool         $secure   True makes the cookie secure
      * @param bool         $httpOnly True makes the cookie accessible via http(s) only (no javascript)
      * @param string|null  $sameSite The cookie SameSite value
@@ -63,9 +64,15 @@ if (! function_exists('get_cookie')) {
      */
     function get_cookie($index, bool $xssClean = false)
     {
-        $prefix  = isset($_COOKIE[$index]) ? '' : config(App::class)->cookiePrefix;
+        /** @var Cookie|null $cookie */
+        $cookie = config('Cookie');
+
+        // @TODO Remove Config\App fallback when deprecated `App` members are removed.
+        $cookiePrefix = $cookie instanceof Cookie ? $cookie->prefix : config(App::class)->cookiePrefix;
+
+        $prefix  = isset($_COOKIE[$index]) ? '' : $cookiePrefix;
         $request = Services::request();
-        $filter  = $xssClean ? FILTER_SANITIZE_STRING : FILTER_DEFAULT;
+        $filter  = $xssClean ? FILTER_SANITIZE_FULL_SPECIAL_CHARS : FILTER_DEFAULT;
 
         return $request->getCookie($prefix . $index, $filter);
     }

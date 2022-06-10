@@ -2,9 +2,15 @@
 Upgrading from 4.1.4 to 4.1.5
 #############################
 
+Please refer to the upgrade instructions corresponding to your installation method.
+
+- :ref:`Composer Installation App Starter Upgrading <app-starter-upgrading>`
+- :ref:`Composer Installation Adding CodeIgniter4 to an Existing Project Upgrading <adding-codeigniter4-upgrading>`
+- :ref:`Manual Installation Upgrading <installing-manual-upgrading>`
+
 .. contents::
     :local:
-    :depth: 1
+    :depth: 2
 
 Breaking Changes
 ================
@@ -44,14 +50,15 @@ now CSRF protection works on not only **POST** but also **PUT/PATCH/DELETE** req
 When you use **PUT/PATCH/DELETE** requests, you need to send CSRF token. Or remove the CSRF filter
 for such requests if you don't need CSRF protection for them.
 
-If you want the same behavior as the previous version, set the CSRF filter like the following in **app/Config/Filters.php**::
+If you want the same behavior as the previous version, set the CSRF filter like the following in **app/Config/Filters.php**:
 
-    public $methods = [
-        'get'  => ['csrf'],
-        'post' => ['csrf'],
-    ];
+.. literalinclude:: upgrade_415/001.php
 
 Protecting **GET** method needs only when you use ``form_open()`` auto-generation of CSRF field.
+
+.. Warning:: In general, if you use ``$methods`` filters, you should :ref:`disable auto-routing <use-defined-routes-only>`
+    because auto-routing permits any HTTP method to access a controller.
+    Accessing the controller with a method you don't expect could bypass the filter.
 
 CURLRequest header change
 -------------------------
@@ -71,6 +78,8 @@ For optimization and a bug fix, the following behaviors, mostly used in testing,
 
 Breaking Enhancements
 =====================
+
+.. _upgrade-415-multiple-filters-for-a-route:
 
 Multiple filters for a route
 ----------------------------
@@ -99,7 +108,7 @@ The following methods and a property have been deprecated:
 - ``CodeIgniter\Router\RouteCollection::getFilterForRoute()``
 - ``CodeIgniter\Router\RouteCollection``'s property ``$filterInfo``
 
-See *Applying Filters* in :doc:`Routing </incoming/routing>` for the functionality.
+See :ref:`applying-filters` for the functionality.
 
 Project Files
 =============

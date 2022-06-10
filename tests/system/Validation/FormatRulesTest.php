@@ -24,12 +24,8 @@ final class FormatRulesTest extends CIUnitTestCase
     public const ALPHABET     = 'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ';
     public const ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyzABCDEFGHLIJKLMNOPQRSTUVWXYZ0123456789';
 
-    /**
-     * @var Validation
-     */
-    private $validation;
-
-    private $config = [
+    private Validation $validation;
+    private array $config = [
         'ruleSets' => [
             Rules::class,
             FormatRules::class,
@@ -798,6 +794,74 @@ final class FormatRulesTest extends CIUnitTestCase
     }
 
     /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/5374
+     *
+     * @dataProvider integerInvalidTypeDataProvider
+     *
+     * @param mixed $value
+     */
+    public function testIntegerWithInvalidTypeData($value, bool $expected): void
+    {
+        $this->validation->setRules([
+            'foo' => 'integer',
+        ]);
+
+        $data = [
+            'foo' => $value,
+        ];
+        $this->assertsame($expected, $this->validation->run($data));
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/5374
+     *
+     * @dataProvider integerInvalidTypeDataProvider
+     *
+     * @param mixed $value
+     */
+    public function testNumericWithInvalidTypeData($value, bool $expected): void
+    {
+        $this->validation->setRules([
+            'foo' => 'numeric',
+        ]);
+
+        $data = [
+            'foo' => $value,
+        ];
+        $this->assertsame($expected, $this->validation->run($data));
+    }
+
+    public function integerInvalidTypeDataProvider(): Generator
+    {
+        // TypeError : CodeIgniter\Validation\FormatRules::integer(): Argument #1 ($str) must be of type ?string, array given
+        // yield 'array with int' => [
+        // [555],
+        // false,
+        // ];
+
+        // TypeError : CodeIgniter\Validation\FormatRules::integer(): Argument #1 ($str) must be of type ?string, array given
+        // yield 'empty array' => [
+        // [],
+        // false,
+        // ];
+
+        yield 'bool true' => [
+            true,
+            true,  // incorrect
+        ];
+
+        yield 'bool false' => [
+            false,
+            false,
+        ];
+
+        yield 'null' => [
+            null,
+            false,
+        ];
+    }
+
+    /**
      * @dataProvider integerProvider
      */
     public function testInteger(?string $str, bool $expected): void
@@ -1142,6 +1206,11 @@ final class FormatRulesTest extends CIUnitTestCase
     public function validDateProvider(): Generator
     {
         yield from [
+            [
+                null,
+                'Y-m-d',
+                false,
+            ],
             [
                 'Sun',
                 'D',

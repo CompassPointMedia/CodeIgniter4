@@ -1,31 +1,30 @@
 # Release Process
 
 > Documentation guide based on the releases of `4.0.5` and `4.1.0` on January 31, 2021.
-> Updated for `4.1.2` on May 17, 2021.
+>
+> Updated for `4.1.6` on December 24, 2021.
+>
 > -MGatner
 
-## Labeling PRs
+## Changelog
 
-To auto-generate changelog, each PR to be listed in changelog must have one of the following [labels](https://github.com/codeigniter4/CodeIgniter4/labels):
+When generating the changelog each Pull Request to be included must have one of the following [labels](https://github.com/codeigniter4/CodeIgniter4/labels):
 - **bug** ... PRs that fix bugs
 - **enhancement** ... PRs to improve existing functionalities
 - **new feature** ... PRs for new features
 - **refactor** ... PRs to refactor
 
-And PRs that have the breaking changes must have the following label:
+PRs with breaking changes must have the following additional label:
 - **breaking change** ... PRs that may break existing functionalities
+
+To auto-generate, start drafting a new Release and use the "Auto-generate release notes" button.
+Copy the resulting content into **CHANGELOG.md** and adjust the format to match the existing content.
 
 ## Preparation
 
 * Work off direct clones of the repos so the release branches persist for a time
 * Clone both **codeigniter4/CodeIgniter4** and **codeigniter4/userguide** and resolve any necessary PRs
 * Vet the **admin/** folders for any removed hidden files (Action deploy scripts *do not remove these*)
-* Generate a new **CHANGELOG.md** ahead of time using [GitHub Changelog Generator](https://github.com/github-changelog-generator/github-changelog-generator):
-```
-github_changelog_generator --user codeigniter4 --project codeigniter4 --since-tag v4.0.4 --future-release v4.0.5 --token {your_github_token}
-...or
-github_changelog_generator --user codeigniter4 --project codeigniter4 --since-commit "2021-02-01 13:26:28" --future-release v4.0.5 --token {your_github_token}
-```
 
 ## CodeIgniter4
 
@@ -38,7 +37,7 @@ github_changelog_generator --user codeigniter4 --project codeigniter4 --since-co
 * Replace **CHANGELOG.md** with the new version generated above
 * Set the date in **user_guide_src/source/changelogs/{version}.rst** to format `Release Date: January 31, 2021`
 * Create a new changelog for the next version at **user_guide_src/source/changelogs/{next_version}.rst** and add it to **index.rst**
-* If there are additional upgrade steps, create **user_guide_src/source/installation/upgrade_{ver}.rst** and add it to **upgrading.rst**
+* Create **user_guide_src/source/installation/upgrade_{ver}.rst**, fill in the "All Changes" section, and add it to **upgrading.rst**
 * Commit the changes with "Prep for 4.x.x release" and push to origin
 * Create a new PR from `release-4.x.x` to `develop`:
 	* Title: "Prep for 4.x.x release"
@@ -58,6 +57,12 @@ CodeIgniter 4.x.x release.
 See the changelog: https://github.com/codeigniter4/CodeIgniter4/blob/develop/CHANGELOG.md
 ```
 * Watch for the "Deploy Framework" Action to make sure **framework** and **appstarter** get updated
+* Run the following commands to install and test AppStarter and verify the new version:
+```bash
+composer create-project codeigniter4/appstarter release-test
+cd release-test
+composer test && composer info codeigniter4/framework
+```
 
 ## User Guide
 
@@ -82,11 +87,11 @@ See the changelog: https://github.com/codeigniter4/CodeIgniter4/blob/develop/CHA
 	* Description: "CodeIgniter 4.x.x User Guide"
 * Watch for the "github pages" Environment to make sure the deployment succeeds
 
-## Website
+### Website
 
-Currently the User Guide on the website has to be updated manually. Visit Jim's user home
-where the served directory **codeigniter.com** exists. Copy the latest **docs** folder from
-the User Guide repo to **public/userguide4** and browse to the website to make sure it works.
+The User Guide website should update itself via the deploy GitHub Action. Should this fail
+the server must be updated manually. See repo and hosting details in the deploy script
+at the User Guide repo.
 
 ## Announcement
 
@@ -94,6 +99,13 @@ the User Guide repo to **public/userguide4** and browse to the website to make s
 
 * Make a new topic in the "News & Discussion" forums: https://forum.codeigniter.com/forum-2.html
 * The content is somewhat organic, but should include any major features and changes as well as a link to the User Guide's changelog
+
+## After Publishing Security Advisory
+
+* Send a PR to [PHP Security Advisories Database](https://github.com/FriendsOfPHP/security-advisories).
+    * E.g. https://github.com/FriendsOfPHP/security-advisories/pull/606
+    * See https://github.com/FriendsOfPHP/security-advisories#contributing
+    * Don't forget to run `php -d memory_limit=-1 validator.php`, before submitting the PR
 
 ## Appendix
 

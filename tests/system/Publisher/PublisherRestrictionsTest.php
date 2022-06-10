@@ -9,8 +9,9 @@
  * the LICENSE file that was distributed with this source code.
  */
 
+namespace CodeIgniter\Publisher;
+
 use CodeIgniter\Publisher\Exceptions\PublisherException;
-use CodeIgniter\Publisher\Publisher;
 use CodeIgniter\Test\CIUnitTestCase;
 
 /**
@@ -24,7 +25,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 final class PublisherRestrictionsTest extends CIUnitTestCase
 {
     /**
-     * @see Tests\Support\Config\Registrars::Publisher()
+     * @see \Tests\Support\Config\Registrar::Publisher()
      */
     public function testRegistrarsNotAllowed()
     {
@@ -68,11 +69,11 @@ final class PublisherRestrictionsTest extends CIUnitTestCase
 
     public function fileProvider()
     {
-        yield 'php' => ['index.php'];
-
-        yield 'exe' => ['cat.exe'];
-
-        yield 'flat' => ['banana'];
+        yield from [
+            'php'  => ['index.php'],
+            'exe'  => ['cat.exe'],
+            'flat' => ['banana'],
+        ];
     }
 
     /**

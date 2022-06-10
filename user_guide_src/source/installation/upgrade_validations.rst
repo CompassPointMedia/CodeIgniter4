@@ -3,15 +3,13 @@ Upgrade Validations
 
 .. contents::
     :local:
-    :depth: 1
-
+    :depth: 2
 
 Documentations of Library
 =========================
 
 - `Form Validation Documentation CodeIgniter 3.X <http://codeigniter.com/userguide3/libraries/form_validation.html>`_
 - :doc:`Validation Documentation CodeIgniter 4.X </libraries/validation>`
-
 
 What has been changed
 =====================
@@ -33,20 +31,16 @@ Upgrade Guide
     - ``if ($this->form_validation->run() == FALSE)`` to ``if (! $this->validate([]))``
     - ``$this->load->view('myform');`` to ``echo view('myform', ['validation' => $this->validator,]);``
 
-3. You have to change the validation rules. The new syntax is to set the rules as array in the controller::
+3. You have to change the validation rules. The new syntax is to set the rules as array in the controller:
 
-    $isValid = $this->validate([
-        'name'  => 'required|min_length[3]',
-        'email' => 'required|valid_email',
-        'phone' => 'required|numeric|max_length[10]'
-    ]);
+   .. literalinclude:: upgrade_validations/001.php
 
 Code Example
 ============
 
-CodeIgniter Version 3.11
+CodeIgniter Version 3.x
 ------------------------
-Path: ``application/views``::
+Path: **application/views**::
 
     <html>
     <head>
@@ -77,34 +71,13 @@ Path: ``application/views``::
     </body>
     </html>
 
-Path: ``application/controllers/``::
+Path: **application/controllers**:
 
-    <?php
-
-    class Form extends CI_Controller {
-
-        public function index()
-        {
-            $this->load->helper(array('form', 'url'));
-
-            $this->load->library('form_validation');
-
-            // Set validation rules
-
-            if ($this->form_validation->run() == FALSE)
-            {
-                    $this->load->view('myform');
-            }
-            else
-            {
-                    $this->load->view('formsuccess');
-            }
-        }
-    }
+.. literalinclude:: upgrade_validations/ci3sample/002.php
 
 CodeIgniter Version 4.x
 -----------------------
-Path: ``app/Views``::
+Path: **app/Views**::
 
     <html>
     <head>
@@ -135,28 +108,6 @@ Path: ``app/Views``::
     </body>
     </html>
 
-Path: ``app/Controllers/``::
+Path: **app/Controllers**:
 
-    <?php
-
-    namespace App\Controllers;
-
-    use CodeIgniter\Controller;
-
-    class Form extends Controller
-    {
-        public function index()
-        {
-            helper(['form', 'url']);
-
-            if (! $this->validate([
-                // Validation rules
-            ])) {
-                echo view('myform', [
-                    'validation' => $this->validator,
-                ]);
-            } else {
-                echo view('formsuccess');
-            }
-        }
-    }
+.. literalinclude:: upgrade_validations/002.php

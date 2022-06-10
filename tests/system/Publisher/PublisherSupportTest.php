@@ -9,8 +9,9 @@
  * the LICENSE file that was distributed with this source code.
  */
 
+namespace CodeIgniter\Publisher;
+
 use CodeIgniter\Publisher\Exceptions\PublisherException;
-use CodeIgniter\Publisher\Publisher;
 use CodeIgniter\Test\CIUnitTestCase;
 use Tests\Support\Publishers\TestPublisher;
 
@@ -21,17 +22,13 @@ final class PublisherSupportTest extends CIUnitTestCase
 {
     /**
      * A known, valid file
-     *
-     * @var string
      */
-    private $file = SUPPORTPATH . 'Files/baker/banana.php';
+    private string $file = SUPPORTPATH . 'Files/baker/banana.php';
 
     /**
      * A known, valid directory
-     *
-     * @var string
      */
-    private $directory = SUPPORTPATH . 'Files/able/';
+    private string $directory = SUPPORTPATH . 'Files/able/';
 
     /**
      * Initialize the helper, since some

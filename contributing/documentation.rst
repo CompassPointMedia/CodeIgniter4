@@ -9,27 +9,14 @@ on readability and user friendliness.
 While they can be quite technical, we always write for humans!
 
 A local table of contents should always be included, like the one below.
-It is created automatically by inserting the following:
-
-::
+It is created automatically by inserting the following::
 
     .. contents::
         :local:
-
-    .. raw:: html
-
-    <div class="custom-index container"></div>
+        :depth: 2
 
 .. contents::
   :local:
-
-.. raw:: html
-
-  <div class="custom-index container"></div>
-
-The <div> that is inserted as raw HTML is a event for the documentation's
-JavaScript to dynamically add links to any function and method definitions
-contained in the current page.
 
 **************
 Tools Required
@@ -92,3 +79,51 @@ create these with the following tab triggers::
 
         SubSubSubSubSection (!)
         """""""""""""""""""""""
+
+**********
+References
+**********
+
+To a Section
+============
+
+If you need to link to a specific section, the first you add the label before a header::
+
+    .. _curlrequest-request-options-headers:
+
+    headers
+    =======
+
+And then you can reference it like this::
+
+    See :ref:`CURLRequest Class <curlrequest-request-options-headers>` for how to add.
+
+    See :ref:`curlrequest-request-options-headers` for how to add.
+
+To a Section in the Page
+========================
+
+You can reference a section in the current page like the following::
+
+     See `Result Rows`_
+
+To a Page
+=========
+
+You can reference a page like the following::
+
+    See :doc:`Session <../libraries/sessions>` library
+
+    See :doc:`../libraries/sessions` library
+
+To a URL
+========
+
+    `CodeIgniter 4 framework <https://github.com/codeigniter4/framework>`_
+
+To a Function
+=============
+
+    :php:func:`dot_array_search`
+
+    :php:func:`Response::setCookie() <setCookie>`

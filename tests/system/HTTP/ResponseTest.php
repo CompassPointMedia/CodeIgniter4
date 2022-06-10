@@ -26,18 +26,22 @@ use DateTimeZone;
  */
 final class ResponseTest extends CIUnitTestCase
 {
-    protected $server;
+    private $server;
 
     protected function setUp(): void
     {
-        parent::setUp();
         $this->server = $_SERVER;
+
+        Services::reset();
+
+        parent::setUp();
     }
 
     protected function tearDown(): void
     {
-        $_SERVER = $this->server;
         Factories::reset('config');
+
+        $_SERVER = $this->server;
     }
 
     public function testCanSetStatusCode()

@@ -23,10 +23,7 @@ use Config\Cookie as CookieConfig;
  */
 final class ResponseCookieTest extends CIUnitTestCase
 {
-    /**
-     * @var array
-     */
-    private $defaults;
+    private array $defaults;
 
     protected function setUp(): void
     {
@@ -63,6 +60,17 @@ final class ResponseCookieTest extends CIUnitTestCase
         $this->assertCount(2, $response->getCookies());
         $this->assertTrue($response->hasCookie('foo'));
         $this->assertTrue($response->hasCookie('bee'));
+    }
+
+    public function testSetCookieObject()
+    {
+        $cookie   = new Cookie('foo', 'bar');
+        $response = new Response(new App());
+
+        $response->setCookie($cookie);
+
+        $this->assertCount(1, $response->getCookies());
+        $this->assertTrue($response->hasCookie('foo'));
     }
 
     public function testCookieGet()

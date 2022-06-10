@@ -20,13 +20,12 @@ use Config\App;
  * @backupGlobals enabled
  *
  * @internal
+ *
+ * @group SeparateProcess
  */
 final class IncomingRequestTest extends CIUnitTestCase
 {
-    /**
-     * @var IncomingRequest
-     */
-    protected $request;
+    private Request $request;
 
     protected function setUp(): void
     {
@@ -107,8 +106,10 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getOldInput('pineapple.name'));
     }
 
-    // Reference: https://github.com/codeigniter4/CodeIgniter4/issues/1492
-    public function testCanGetOldInputArray()
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/1492
+     */
+    public function testCanGetOldInputArrayWithSESSION()
     {
         $_SESSION['_ci_old_input'] = [
             'get'  => ['apple' => ['name' => 'two']],
@@ -119,13 +120,13 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame(['name' => 'foo'], $this->request->getOldInput('banana'));
     }
 
-    // Reference: https://github.com/codeigniter4/CodeIgniter4/issues/1492
-
     /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/1492
+     *
      * @runInSeparateProcess
      * @preserveGlobalState  disabled
      */
-    public function testCanSerializeOldArray()
+    public function testCanGetOldInputArrayWithSessionService()
     {
         $locations = [
             'AB' => 'Alberta',
@@ -394,6 +395,29 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame('buzz', $all['fizz']);
     }
 
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/5391
+     */
+    public function testGetJsonVarReturnsNullFromNullBody()
+    {
+        $config          = new App();
+        $config->baseURL = 'http://example.com/';
+        $json            = null;
+        $request         = new IncomingRequest($config, new URI(), $json, new UserAgent());
+
+        $this->assertNull($request->getJsonVar('myKey'));
+    }
+
+    public function testgetJSONReturnsNullFromNullBody()
+    {
+        $config          = new App();
+        $config->baseURL = 'http://example.com/';
+        $json            = null;
+        $request         = new IncomingRequest($config, new URI(), $json, new UserAgent());
+
+        $this->assertNull($request->getJSON());
+    }
+
     public function testCanGrabGetRawInput()
     {
         $rawstring = 'username=admin001&role=administrator&usepass=0';
@@ -414,8 +438,7 @@ final class IncomingRequestTest extends CIUnitTestCase
 
     public function testIsCLI()
     {
-        // this should be the case in unit testing
-        $this->assertTrue($this->request->isCLI());
+        $this->assertFalse($this->request->isCLI());
     }
 
     public function testIsAJAX()
@@ -652,4 +675,81 @@ final class IncomingRequestTest extends CIUnitTestCase
 
         $this->assertSame('apples', $request->getUri()->getPath());
     }
+
+    public function testGetIPAddressNormal()
+    {
+        $expected               = '123.123.123.123';
+        $_SERVER['REMOTE_ADDR'] = $expected;
+        $this->request          = new Request(new App());
+        $this->assertSame($expected, $this->request->getIPAddress());
+        // call a second time to exercise the initial conditional block in getIPAddress()
+        $this->assertSame($expected, $this->request->getIPAddress());
+    }
+
+    public function testGetIPAddressThruProxy()
+    {
+        $expected                        = '123.123.123.123';
+        $_SERVER['REMOTE_ADDR']          = '10.0.1.200';
+        $config                          = new App();
+        $config->proxyIPs                = '10.0.1.200,192.168.5.0/24';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
+        $this->request                   = new Request($config);
+
+        // we should see the original forwarded address
+        $this->assertSame($expected, $this->request->getIPAddress());
+    }
+
+    public function testGetIPAddressThruProxyInvalid()
+    {
+        $expected                        = '123.456.23.123';
+        $_SERVER['REMOTE_ADDR']          = '10.0.1.200';
+        $config                          = new App();
+        $config->proxyIPs                = '10.0.1.200,192.168.5.0/24';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
+        $this->request                   = new Request($config);
+
+        // spoofed address invalid
+        $this->assertSame('10.0.1.200', $this->request->getIPAddress());
+    }
+
+    public function testGetIPAddressThruProxyNotWhitelisted()
+    {
+        $expected                        = '123.456.23.123';
+        $_SERVER['REMOTE_ADDR']          = '10.10.1.200';
+        $config                          = new App();
+        $config->proxyIPs                = '10.0.1.200,192.168.5.0/24';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
+        $this->request                   = new Request($config);
+
+        // spoofed address invalid
+        $this->assertSame('10.10.1.200', $this->request->getIPAddress());
+    }
+
+    public function testGetIPAddressThruProxySubnet()
+    {
+        $expected                        = '123.123.123.123';
+        $_SERVER['REMOTE_ADDR']          = '192.168.5.21';
+        $config                          = new App();
+        $config->proxyIPs                = ['192.168.5.0/24'];
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
+        $this->request                   = new Request($config);
+
+        // we should see the original forwarded address
+        $this->assertSame($expected, $this->request->getIPAddress());
+    }
+
+    public function testGetIPAddressThruProxyOutofSubnet()
+    {
+        $expected                        = '123.123.123.123';
+        $_SERVER['REMOTE_ADDR']          = '192.168.5.21';
+        $config                          = new App();
+        $config->proxyIPs                = ['192.168.5.0/28'];
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
+        $this->request                   = new Request($config);
+
+        // we should see the original forwarded address
+        $this->assertSame('192.168.5.21', $this->request->getIPAddress());
+    }
+
+    // @TODO getIPAddress should have more testing, to 100% code coverage
 }

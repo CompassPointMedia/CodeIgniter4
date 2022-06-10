@@ -21,7 +21,7 @@ use Throwable;
  */
 final class BaseConnectionTest extends CIUnitTestCase
 {
-    protected $options = [
+    private array $options = [
         'DSN'      => '',
         'hostname' => 'localhost',
         'username' => 'first',
@@ -39,7 +39,7 @@ final class BaseConnectionTest extends CIUnitTestCase
         'strictOn' => true,
         'failover' => [],
     ];
-    protected $failoverOptions = [
+    private array $failoverOptions = [
         'DSN'      => '',
         'hostname' => 'localhost',
         'username' => 'failover',
@@ -105,8 +105,11 @@ final class BaseConnectionTest extends CIUnitTestCase
         $options             = $this->options;
         $options['failover'] = [$this->failoverOptions];
 
-        $db = new MockConnection($options);
-        $db->shouldReturn('connect', [false, 345])->initialize();
+        $db                         = new class ($options) extends MockConnection {
+            protected $returnValues = [
+                'connect' => [false, 345],
+            ];
+        };
 
         $this->assertSame(345, $db->getConnection());
         $this->assertSame('failover', $db->username);
@@ -121,6 +124,16 @@ final class BaseConnectionTest extends CIUnitTestCase
 
         $this->assertGreaterThan($start, $db->getConnectStart());
         $this->assertGreaterThan(0.0, $db->getConnectDuration());
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/5535
+     */
+    public function testStoresConnectionTimingsNotConnected()
+    {
+        $db = new MockConnection($this->options);
+
+        $this->assertSame('0.000000', $db->getConnectDuration());
     }
 
     public function testMagicIssetTrue()
