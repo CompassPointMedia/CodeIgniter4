@@ -195,11 +195,13 @@ class CodeIgniter
         // Set default timezone on the server
         date_default_timezone_set($this->config->appTimezone ?? 'UTC');
 
+        /*
         $this->initializeKint();
 
         if (! CI_DEBUG) {
             Kint::$enabled_mode = false; // @codeCoverageIgnore
         }
+        */
     }
 
     /**
@@ -455,8 +457,17 @@ class CodeIgniter
         $returned = $this->startController();
 
         // Closure controller has run in startController().
-        if (! is_callable($this->controller)) {
-            $controller = $this->createController();
+        if (! is_callable($this->controller) ||
+            (is_object($this->controller) && get_class($this->controller) !== 'Closure'))
+        {
+            if (is_object($this->controller) && get_class($this->controller) !== 'Closure')
+            {
+                $controller = $this->controller;
+            }
+            else
+            {
+                $controller = $this->createController();
+            }
 
             if (! method_exists($controller, '_remap') && ! is_callable([$controller, $this->method], false)) {
                 throw PageNotFoundException::forMethodNotFound($this->method);
@@ -844,6 +855,11 @@ class CodeIgniter
             throw PageNotFoundException::forEmptyController();
         }
 
+        if (gettype($this->controller) !== 'string')
+        {
+            return;
+        }
+
         // Try to autoload the class
         if (! class_exists($this->controller, true) || $this->method[0] === '_') {
             throw PageNotFoundException::forControllerNotFound($this->controller, $this->method);
@@ -857,7 +873,19 @@ class CodeIgniter
      */
     protected function createController()
     {
-        $class = new $this->controller();
+        $constructor = '__construct';
+        if (! is_null($this->router->controllerConstructor()) && method_exists($this->controller, $constructor))
+        {
+            // Allow passage of constructor arguments to the controller if desired,
+            // since neither Controller or BaseController classes have constructor methods.
+            // If $this->controller is already a passed object then it will already be
+            // instantiated, but won't have the benefit of this construction.
+            $class = new $this->controller(...$this->router->controllerConstructor());
+        }
+        else
+        {
+            $class = new $this->controller();
+        }
         $class->initController($this->request, $this->response, Services::logger());
 
         $this->benchmark->stop('controller_constructor');

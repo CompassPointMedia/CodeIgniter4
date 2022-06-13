@@ -5,6 +5,7 @@ define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
 
 // Ensure the current directory is pointing to the front controller's directory
 chdir(FCPATH);
+require('../tmp/PreTools.class.php');
 
 /*
  *---------------------------------------------------------------

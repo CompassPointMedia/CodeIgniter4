@@ -16,6 +16,8 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\Request;
 use CodeIgniter\Router\Exceptions\RedirectException;
 use CodeIgniter\Router\Exceptions\RouterException;
+use CodeIgniter\Module\ModuleRoutingEngine;
+use \Config\Modules;
 
 /**
  * Request router.
@@ -96,6 +98,13 @@ class Router implements RouterInterface
     protected $detectedLocale;
 
     /**
+     * Variables to be passed to selected controller constructor.
+     *
+     * @var null
+     */
+    protected $controllerConstructor = null;
+
+    /**
      * The filter info from Route Collection
      * if the matched route should be filtered.
      *
@@ -162,20 +171,52 @@ class Router implements RouterInterface
      */
     public function handle(?string $uri = null)
     {
-        // If we cannot find a URI to match against, then
-        // everything runs off of its default settings.
-        if ($uri === null || $uri === '') {
-            return strpos($this->controller, '\\') === false
-                ? $this->collection->getDefaultNamespace() . $this->controller
-                : $this->controller;
-        }
-
         // Decode URL-encoded string
         $uri = urldecode($uri);
 
         // Restart filterInfo
         $this->filterInfo  = null;
         $this->filtersInfo = [];
+
+        // Module Routing Engine
+        if (! empty($this->collection->getModuleConfig()->useModuleRouting) && ! empty($this->collection->getModuleConfig()->routingModules)){
+            $engine = new ModuleRoutingEngine($this->collection->getModuleConfig(), []);
+
+            if ($engine->runThrough($this->collection->getHTTPVerb(), $uri))
+            {
+                // Following two attributes MUST be provided by engine
+                $this->controller = $engine->controller;
+                $this->method = $engine->method;
+
+                // Following attributes MAY be provided by engine
+                foreach( [ 'detectedLocale', 'params', 'matchedRoute', 'matchedRouteOptions' ] as $attribute)
+                {
+                    if (isset($engine->$attribute))
+                    {
+                        $this->$attribute = $engine->$attribute;
+                    }
+                }
+
+                // Controller constructor arguments will be called only if value is non-null
+                if (! is_null($engine->controllerConstructor))
+                {
+                    $this->controllerConstructor = $engine->controllerConstructor;
+                }
+
+                // Module Routing has the ability to return $this->controller as the actual instantiated
+                // object/class that was used for efficiency.
+                return $this->controller;
+            }
+        }
+
+        // If we cannot find a URI to match against, then
+        // everything runs off of its default settings.
+        if (empty($uri))
+        {
+            return strpos($this->controller, '\\') === false
+                ? $this->collection->getDefaultNamespace() . $this->controller
+                : $this->controller;
+        }
 
         // Checks defined routes
         if ($this->checkRoutes($uri)) {
@@ -287,6 +328,15 @@ class Router implements RouterInterface
     }
 
     /**
+     *
+     * @return mixed
+     */
+    public function controllerConstructor()
+    {
+        return $this->controllerConstructor;
+    }
+
+    /**
      * Returns the name of the sub-directory the controller is in,
      * if any. Relative to APPPATH.'Controllers'.
      *
@@ -390,6 +440,7 @@ class Router implements RouterInterface
      */
     protected function checkRoutes(string $uri): bool
     {
+        // Get routes though the module routing may not need that
         $routes = $this->collection->getRoutes($this->collection->getHTTPVerb());
 
         // Don't waste any time
